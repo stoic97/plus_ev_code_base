@@ -1,0 +1,33 @@
+# Basic dependencies
+numpy>=1.20.0
+pandas>=1.3.0
+matplotlib>=3.4.0
+scipy>=1.7.0
+
+# Time series modeling
+statsmodels>=0.13.0
+
+# GPU acceleration
+cupy-cuda12x>=12.0.0  # For CUDA 12.1
+# Alternatives based on your CUDA version:
+# cupy-cuda10x>=10.6.0  # For CUDA 10.x
+# cupy-cuda11x>=10.6.0  # For CUDA 11.x
+# cupy>=10.6.0          # Let pip determine the best version
+
+# Backtesting
+backtrader>=1.9.76
+
+# Utilities
+tqdm>=4.62.0
+joblib>=1.1.0
+pyyaml>=6.0
+
+# Experiment tracking
+wandb>=0.12.0
+
+# Testing
+pytest>=6.2.5
+
+# Optional - Deep learning
+# tensorflow>=2.8.0
+# torch>=1.10.0
