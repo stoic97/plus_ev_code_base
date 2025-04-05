@@ -21,6 +21,7 @@ import time
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from datetime import datetime, timedelta
+from enum import Enum, auto
 from functools import wraps
 from typing import Any, Dict, Generator, List, Optional, Tuple, Union, Callable
 
@@ -42,6 +43,18 @@ logger = logging.getLogger(__name__)
 
 # Base class for SQLAlchemy models
 Base = declarative_base()
+
+
+#################################################
+# Database Type Enum
+#################################################
+
+class DatabaseType(Enum):
+    """Enum for supported database types."""
+    POSTGRESQL = auto()
+    TIMESCALEDB = auto()
+    MONGODB = auto()
+    REDIS = auto()
 
 
 #################################################
@@ -994,25 +1007,234 @@ class RedisDB(Database):
             return self.set_json(key, value, expiration)
         
 
-# Add this at the bottom of database.py
-def get_db():
+#################################################
+# Database Connection Management
+#################################################
+
+# Database instance singletons
+_db_instances: Dict[DatabaseType, Database] = {}
+
+
+def get_db_instance(db_type: DatabaseType) -> Database:
     """
-    Dependency for FastAPI to get a database session.
+    Get a database instance of the specified type.
+    Uses a singleton pattern to reuse existing connections.
     
+    Args:
+        db_type: Database type enum value
+        
+    Returns:
+        Database instance of the requested type
+    
+    Raises:
+        ValueError: If an unsupported database type is requested
+    """
+    global _db_instances
+    
+    # Return existing instance if available
+    if db_type in _db_instances and _db_instances[db_type].is_connected:
+        return _db_instances[db_type]
+    
+    # Otherwise create a new instance
+    settings = get_settings()
+    
+    if db_type == DatabaseType.POSTGRESQL:
+        db = PostgresDB(settings=settings)
+    elif db_type == DatabaseType.TIMESCALEDB:
+        db = TimescaleDB(settings=settings)
+    elif db_type == DatabaseType.MONGODB:
+        db = MongoDB(settings=settings)
+    elif db_type == DatabaseType.REDIS:
+        db = RedisDB(settings=settings)
+    else:
+        raise ValueError(f"Unsupported database type: {db_type}")
+    
+    # Connect to database
+    if not db.is_connected:
+        db.connect()
+    
+    # Store instance in cache
+    _db_instances[db_type] = db
+    
+    return db
+
+
+def close_db_connections():
+    """
+    Close all database connections.
+    Should be called when the application shuts down.
+    """
+    global _db_instances
+    
+    for db_type, db in _db_instances.items():
+        try:
+            if db.is_connected:
+                logger.info(f"Closing {db_type.name} connection")
+                db.disconnect()
+        except Exception as e:
+            logger.error(f"Error closing {db_type.name} connection: {e}")
+    
+    # Clear instances
+    _db_instances = {}
+
+
+@contextmanager
+def db_session(db_type: DatabaseType) -> Generator[Session, None, None]:
+    """
+    Get a database session as a context manager.
+    Only works for relational databases (PostgreSQL and TimescaleDB).
+    
+    Args:
+        db_type: Database type enum value (must be PostgreSQL or TimescaleDB)
+        
     Yields:
-        Session: SQLAlchemy database session
+        SQLAlchemy session
+    
+    Raises:
+        TypeError: If requested for a non-relational database
     
     Example:
         ```
-        @app.get("/users/{user_id}")
-        def get_user(user_id: int, db: Session = Depends(get_db)):
-            return db.query(User).filter(User.id == user_id).first()
+        with db_session(DatabaseType.POSTGRESQL) as session:
+            users = session.query(User).all()
         ```
     """
-    db = PostgresDB()
-    try:
-        db.connect()
+    if db_type not in (DatabaseType.POSTGRESQL, DatabaseType.TIMESCALEDB):
+        raise TypeError(f"Cannot get session for non-relational database: {db_type}")
+    
+    # Get database instance
+    db = get_db_instance(db_type)
+    
+    # We know this is a PostgresDB or TimescaleDB instance
+    if isinstance(db, (PostgresDB, TimescaleDB)):
         with db.session() as session:
             yield session
-    finally:
-        db.disconnect()
+    else:
+        # This should never happen due to the check above
+        raise TypeError(f"Database instance is not relational: {type(db)}")
+
+
+def get_db() -> PostgresDB:
+    """
+    Dependency injection function for FastAPI to get a PostgreSQL database instance.
+    
+    Returns:
+        PostgreSQL database instance
+    
+    Example:
+        ```
+        @app.get("/users")
+        def get_users(db: PostgresDB = Depends(get_db)):
+            with db.session() as session:
+                users = session.query(User).all()
+                return users
+        ```
+    """
+    return get_db_instance(DatabaseType.POSTGRESQL)
+
+
+def get_timescale_db() -> TimescaleDB:
+    """
+    Dependency injection function for FastAPI to get a TimescaleDB database instance.
+    
+    Returns:
+        TimescaleDB database instance
+    """
+    return get_db_instance(DatabaseType.TIMESCALEDB)
+
+
+def get_mongo_db() -> MongoDB:
+    """
+    Dependency injection function for FastAPI to get a MongoDB database instance.
+    
+    Returns:
+        MongoDB database instance
+    """
+    return get_db_instance(DatabaseType.MONGODB)
+
+
+def get_redis_db() -> RedisDB:
+    """
+    Dependency injection function for FastAPI to get a Redis database instance.
+    
+    Returns:
+        Redis database instance
+    """
+    return get_db_instance(DatabaseType.REDIS)
+
+
+# Cache decorator for efficient function result caching
+def cache(ttl: int = None, key_prefix: str = None):
+    """
+    Decorator for caching function results in Redis.
+    
+    Args:
+        ttl: Cache time-to-live in seconds (None = use default)
+        key_prefix: Prefix for cache keys
+        
+    Returns:
+        Decorated function
+        
+    Example:
+        ```
+        @cache(ttl=60)
+        def get_market_data(symbol: str):
+            # Expensive operation to get market data
+            ...
+            return data
+        ```
+    """
+    def decorator(func):
+        from functools import wraps
+        import json
+        import inspect
+        import hashlib
+        
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            # Get Redis instance
+            redis_db = get_db_instance(DatabaseType.REDIS)
+            settings = get_settings()
+            
+            # Determine TTL
+            cache_ttl = ttl
+            if cache_ttl is None:
+                cache_ttl = settings.performance.CACHE_TTL_DEFAULT
+            
+            # Generate cache key
+            prefix = key_prefix or f"{func.__module__}.{func.__name__}"
+            
+            # Create signature for args and kwargs
+            sig = inspect.signature(func)
+            bound_args = sig.bind(*args, **kwargs)
+            bound_args.apply_defaults()
+            
+            # Serialize arguments to a string for hashing
+            args_str = json.dumps(
+                {k: str(v) for k, v in bound_args.arguments.items()},
+                sort_keys=True
+            )
+            
+            # Create hash of arguments
+            args_hash = hashlib.md5(args_str.encode()).hexdigest()
+            
+            # Full cache key
+            cache_key = f"{prefix}:{args_hash}"
+            
+            # Try to get from cache
+            cached_value = redis_db.get_json(cache_key)
+            if cached_value is not None:
+                return cached_value
+            
+            # Call function
+            result = func(*args, **kwargs)
+            
+            # Store in cache
+            redis_db.set_json(cache_key, result, expiration=cache_ttl)
+            
+            return result
+        
+        return wrapper
+    
+    return decorator
+
