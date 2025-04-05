@@ -3,7 +3,11 @@ import pytest
 import os
 from unittest.mock import MagicMock, patch
 
-from app.core.database import PostgresDB, MongoDB, RedisDB, TimescaleDB
+from app.core.database import (
+    PostgresDB, MongoDB, RedisDB, TimescaleDB,
+    DatabaseType, get_db_instance, close_db_connections, db_session,
+    get_db, get_mongo_db, get_redis_db, get_timescale_db, cache
+)
 
 
 # Fixtures for mock settings
@@ -16,6 +20,12 @@ def mock_settings():
     settings.db.POSTGRES_MIN_CONNECTIONS = 1
     settings.db.POSTGRES_MAX_CONNECTIONS = 3
     settings.db.POSTGRES_STATEMENT_TIMEOUT = 10000
+    
+    # TimescaleDB settings
+    settings.db.TIMESCALE_URI = "postgresql://postgres:postgres@localhost:5432/timescale_db"
+    settings.db.TIMESCALE_MIN_CONNECTIONS = 1
+    settings.db.TIMESCALE_MAX_CONNECTIONS = 3
+    settings.db.TIMESCALE_STATEMENT_TIMEOUT = 10000
     
     # MongoDB settings
     settings.db.MONGODB_URI = "mongodb://localhost:27017/test_db"
@@ -35,6 +45,10 @@ def mock_settings():
     settings.db.REDIS_SOCKET_CONNECT_TIMEOUT = 1.0
     settings.db.REDIS_CONNECTION_POOL_SIZE = 10
     settings.db.REDIS_KEY_PREFIX = "test:"
+    
+    # Cache settings
+    settings.performance = MagicMock()
+    settings.performance.CACHE_TTL_DEFAULT = 300
     
     return settings
 
@@ -131,6 +145,14 @@ def mock_redis_client():
             mock_pool.return_value = mock_pool_instance
             yield mock_redis
 
+# Fixture for patching get_settings
+@pytest.fixture
+def mock_get_settings(mock_settings):
+    """Mock get_settings to return our mock settings."""
+    with patch('app.core.database.get_settings', return_value=mock_settings):
+        yield
+
+
 class TestDatabaseManager:
     """Basic tests for database manager functionality."""
     
@@ -200,3 +222,148 @@ class TestDatabaseManager:
             if redis_db.is_connected:
                 redis_db.disconnect()
                 assert redis_db.is_connected == False
+
+    def test_timescale_connection(self, mock_settings, mock_sqlalchemy_engine):
+        """Test TimescaleDB connection using mocks."""
+        # Create database manager with test settings
+        timescale_db = TimescaleDB(settings=mock_settings)
+        
+        # Patch the _register_event_listeners method to do nothing
+        with patch.object(timescale_db, '_register_event_listeners', return_value=None):
+            try:
+                # Test connection
+                timescale_db.connect()
+                assert timescale_db.is_connected == True
+                assert timescale_db.check_health() == True
+                
+                # Test basic query execution
+                with timescale_db.session() as session:
+                    result = session.execute("SELECT 1 as test")
+                    assert result.fetchone().test == 1
+            
+            finally:
+                # Clean up
+                if timescale_db.is_connected:
+                    timescale_db.disconnect()
+                    assert timescale_db.is_connected == False
+
+
+class TestDatabaseConnectionManagement:
+    """Tests for database connection management functionality."""
+    
+    def test_get_db_instance_singleton(self, mock_get_settings, mock_sqlalchemy_engine, mock_mongo_client, mock_redis_client):
+        """Test that get_db_instance returns a singleton instance."""
+        with patch.object(PostgresDB, '_register_event_listeners', return_value=None):
+            # Get PostgreSQL instance twice
+            db1 = get_db_instance(DatabaseType.POSTGRESQL)
+            db2 = get_db_instance(DatabaseType.POSTGRESQL)
+            
+            # Should be the same instance
+            assert db1 is db2
+            assert isinstance(db1, PostgresDB)
+            assert db1.is_connected
+            
+            # Get MongoDB instance
+            mongo_db = get_db_instance(DatabaseType.MONGODB)
+            assert isinstance(mongo_db, MongoDB)
+            assert mongo_db.is_connected
+            
+            # Get Redis instance
+            redis_db = get_db_instance(DatabaseType.REDIS)
+            assert isinstance(redis_db, RedisDB)
+            assert redis_db.is_connected
+            
+            # Clean up
+            close_db_connections()
+    
+    def test_close_db_connections(self, mock_get_settings, mock_sqlalchemy_engine, mock_mongo_client, mock_redis_client):
+        """Test that close_db_connections closes all connections."""
+        with patch.object(PostgresDB, '_register_event_listeners', return_value=None):
+            # Create some database instances
+            postgres_db = get_db_instance(DatabaseType.POSTGRESQL)
+            mongo_db = get_db_instance(DatabaseType.MONGODB)
+            redis_db = get_db_instance(DatabaseType.REDIS)
+            
+            # Make sure they're connected
+            assert postgres_db.is_connected
+            assert mongo_db.is_connected
+            assert redis_db.is_connected
+            
+            # Close all connections
+            close_db_connections()
+            
+            # Instances should still exist but be disconnected
+            from app.core.database import _db_instances
+            assert len(_db_instances) == 0
+    
+    def test_db_session_context_manager(self, mock_get_settings, mock_sqlalchemy_engine):
+        """Test db_session context manager."""
+        with patch.object(PostgresDB, '_register_event_listeners', return_value=None):
+            # Use the context manager
+            with db_session(DatabaseType.POSTGRESQL) as session:
+                # Execute a query
+                result = session.execute("SELECT 1 as test")
+                assert result.fetchone().test == 1
+            
+            # Should raise TypeError for non-relational databases
+            with pytest.raises(TypeError):
+                with db_session(DatabaseType.MONGODB) as session:
+                    pass
+            
+            # Clean up
+            close_db_connections()
+    
+    def test_dependency_injection_functions(self, mock_get_settings, mock_sqlalchemy_engine, mock_mongo_client, mock_redis_client):
+        """Test dependency injection functions."""
+        with patch.object(PostgresDB, '_register_event_listeners', return_value=None):
+            with patch.object(TimescaleDB, '_register_event_listeners', return_value=None):
+                # Test get_db
+                postgres_db = get_db()
+                assert isinstance(postgres_db, PostgresDB)
+                assert postgres_db.is_connected
+                
+                # Test get_timescale_db
+                timescale_db = get_timescale_db()
+                assert isinstance(timescale_db, TimescaleDB)
+                assert timescale_db.is_connected
+                
+                # Test get_mongo_db
+                mongo_db = get_mongo_db()
+                assert isinstance(mongo_db, MongoDB)
+                assert mongo_db.is_connected
+                
+                # Test get_redis_db
+                redis_db = get_redis_db()
+                assert isinstance(redis_db, RedisDB)
+                assert redis_db.is_connected
+                
+                # Clean up
+                close_db_connections()
+
+    def test_cache_decorator(self, mock_get_settings, mock_redis_client):
+        """Test cache decorator."""
+        # Create a test function with the cache decorator
+        @cache(ttl=60)
+        def test_function(param1, param2):
+            # This is a function that might be expensive to call
+            return f"Result for {param1} and {param2}"
+        
+        # Configure Redis get_json and set_json for the test
+        redis_instance = get_db_instance(DatabaseType.REDIS)
+        redis_instance.get_json = MagicMock(return_value=None)  # First call returns None (cache miss)
+        redis_instance.set_json = MagicMock(return_value=True)
+        
+        # Call the function - should miss cache and set cache
+        result1 = test_function("value1", "value2")
+        assert result1 == "Result for value1 and value2"
+        redis_instance.set_json.assert_called_once()
+        
+        # Modify the mock to return a cached value
+        redis_instance.get_json = MagicMock(return_value="Cached result")
+        
+        # Call the function again - should hit cache
+        result2 = test_function("value1", "value2")
+        assert result2 == "Cached result"
+        
+        # Clean up
+        close_db_connections()
