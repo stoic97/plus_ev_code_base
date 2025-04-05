@@ -992,3 +992,27 @@ class RedisDB(Database):
             return self.set(key, value, expiration)
         else:
             return self.set_json(key, value, expiration)
+        
+
+# Add this at the bottom of database.py
+def get_db():
+    """
+    Dependency for FastAPI to get a database session.
+    
+    Yields:
+        Session: SQLAlchemy database session
+    
+    Example:
+        ```
+        @app.get("/users/{user_id}")
+        def get_user(user_id: int, db: Session = Depends(get_db)):
+            return db.query(User).filter(User.id == user_id).first()
+        ```
+    """
+    db = PostgresDB()
+    try:
+        db.connect()
+        with db.session() as session:
+            yield session
+    finally:
+        db.disconnect()
