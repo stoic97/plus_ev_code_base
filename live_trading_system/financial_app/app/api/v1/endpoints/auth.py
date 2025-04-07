@@ -4,22 +4,27 @@ Authentication endpoints for user login, registration, and token management.
 
 from datetime import datetime, timedelta
 from typing import Optional
+import re
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
 
 from app.core.config import settings
-from app.core.database import PostgresDB
+from app.core.database import PostgresDB, get_db
 from app.core.security import (
+    User,
     Token,
-    UserAuth,
     authenticate_user,
-    blacklist_token,
     create_access_token,
+    create_refresh_token,
     get_current_active_user,
     get_current_user,
     get_password_hash,
-    verify_password_strength,
+    verify_password,
+    log_auth_event,
+    create_user,
+    Roles,
+    refresh_access_token
 )
 from app.schemas.auth import (
     LoginResponse,
@@ -30,20 +35,28 @@ from app.schemas.auth import (
     TokenResponse,
     UserResponse,
 )
+import logging
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
 # Get database instance
-db = PostgresDB()
+# db = PostgresDB()
 
 
 @router.post("/token", response_model=TokenResponse)
-async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
+async def login_for_access_token(
+    request: Request,
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db_session: PostgresDB = Depends(get_db)
+):
     """
     OAuth2 compatible token login, get an access token for future requests.
     
     Args:
+        request: Request object
         form_data: OAuth2 password request form
+        db_session: Database session
         
     Returns:
         Access token information
@@ -51,36 +64,45 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     Raises:
         HTTPException: If authentication fails
     """
-    with db.session() as session:
-        user = authenticate_user(session, form_data.username, form_data.password)
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Incorrect username or password",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
-        
-        access_token_expires = timedelta(minutes=settings.security.ACCESS_TOKEN_EXPIRE_MINUTES)
-        access_token = create_access_token(
-            data={"sub": user.username, "scopes": user.scopes},
-            expires_delta=access_token_expires
+    user = authenticate_user(db_session, form_data.username, form_data.password)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
         )
-        
-        return TokenResponse(
-            access_token=access_token,
-            token_type="bearer",
-            expires_at=datetime.utcnow() + access_token_expires,
-            scopes=user.scopes
-        )
+    
+    # Create tokens
+    access_token = create_access_token(
+        data={"sub": user.username, "roles": user.roles}
+    )
+    refresh_token = create_refresh_token(
+        data={"sub": user.username, "roles": user.roles}
+    )
+    
+    # Map to our token response model
+    return TokenResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        token_type="bearer",
+        expires_at=datetime.utcnow() + timedelta(minutes=settings.security.ACCESS_TOKEN_EXPIRE_MINUTES),
+        scopes=user.roles  # Using roles as scopes
+    )
 
 
 @router.post("/login", response_model=LoginResponse)
-async def login(form_data: OAuth2PasswordRequestForm = Depends()):
+async def login(
+    request: Request,
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db_session: PostgresDB = Depends(get_db)
+):
     """
     Login endpoint with more detailed response.
     
     Args:
+        request: Request object
         form_data: OAuth2 password request form
+        db_session: Database session
         
     Returns:
         User information and access token
@@ -88,41 +110,46 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     Raises:
         HTTPException: If authentication fails
     """
-    with db.session() as session:
-        user = authenticate_user(session, form_data.username, form_data.password)
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Incorrect username or password",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
-        
-        access_token_expires = timedelta(minutes=settings.security.ACCESS_TOKEN_EXPIRE_MINUTES)
-        access_token = create_access_token(
-            data={"sub": user.username, "scopes": user.scopes},
-            expires_delta=access_token_expires
+    user = authenticate_user(db_session, form_data.username, form_data.password)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
         )
-        
-        return LoginResponse(
-            user=UserResponse(
-                username=user.username,
-                email=user.email,
-                full_name=user.full_name,
-                scopes=user.scopes,
-            ),
-            access_token=access_token,
-            token_type="bearer",
-            expires_at=datetime.utcnow() + access_token_expires
-        )
+    
+    # Create tokens
+    access_token = create_access_token(
+        data={"sub": user.username, "roles": user.roles}
+    )
+    
+    # Map to our login response model
+    return LoginResponse(
+        user=UserResponse(
+            username=user.username,
+            email=user.email,
+            full_name=user.full_name,
+            scopes=user.roles,  # Using roles as scopes
+        ),
+        access_token=access_token,
+        token_type="bearer",
+        expires_at=datetime.utcnow() + timedelta(minutes=settings.security.ACCESS_TOKEN_EXPIRE_MINUTES)
+    )
 
 
 @router.post("/refresh", response_model=TokenResponse)
-async def refresh_token(refresh_request: RefreshTokenRequest):
+async def refresh_token(
+    request: Request,
+    refresh_request: RefreshTokenRequest,
+    db_session: PostgresDB = Depends(get_db)
+):
     """
     Refresh an access token.
     
     Args:
+        request: Request object
         refresh_request: Token refresh request
+        db_session: Database session
         
     Returns:
         New access token
@@ -130,28 +157,20 @@ async def refresh_token(refresh_request: RefreshTokenRequest):
     Raises:
         HTTPException: If token refresh fails
     """
-    # This is a placeholder implementation
-    # In a real implementation, you would validate the refresh token
-    # For now, we'll just issue a new token with the same user data
-    
     try:
-        user = await get_current_user(refresh_request.token)
-        
-        # Create a new access token
-        access_token_expires = timedelta(minutes=settings.security.ACCESS_TOKEN_EXPIRE_MINUTES)
-        access_token = create_access_token(
-            data={"sub": user.username, "scopes": user.scopes},
-            expires_delta=access_token_expires
+        tokens = await refresh_access_token(
+            request=request,
+            refresh_token=refresh_request.token,
+            db=db_session
         )
-        
-        # Optionally blacklist the old token for security
-        blacklist_token(refresh_request.token)
-        
+    
+        # Convert to our response model
         return TokenResponse(
-            access_token=access_token,
-            token_type="bearer",
-            expires_at=datetime.utcnow() + access_token_expires,
-            scopes=user.scopes
+            access_token=tokens["access_token"],
+            refresh_token=tokens["refresh_token"],
+            token_type=tokens["token_type"],
+            expires_at=datetime.utcnow() + timedelta(minutes=settings.security.ACCESS_TOKEN_EXPIRE_MINUTES),
+            scopes=[]  # We would need to decode the token to get roles
         )
     except Exception:
         raise HTTPException(
@@ -160,75 +179,125 @@ async def refresh_token(refresh_request: RefreshTokenRequest):
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-
 @router.post("/register", response_model=RegisterResponse)
-async def register(register_request: RegisterRequest):
+async def register(
+    request: Request,
+    register_request: RegisterRequest,
+    db_session: PostgresDB = Depends(get_db)
+):
     """
-    Register a new user.
-    
-    Args:
-        register_request: User registration data
-        
-    Returns:
-        Result of registration
-        
-    Raises:
-        HTTPException: If registration fails
+    Register a new user with comprehensive validation.
     """
-    # This is a simplified implementation
-    # In a real implementation, you would create the user in the database
-    
-    # Check if password is strong enough
-    if not verify_password_strength(register_request.password):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=(
-                "Password is not strong enough. It must be at least 12 characters and contain "
-                "uppercase letters, lowercase letters, numbers, and special characters."
-            ),
+    try:
+        # First, let Pydantic validate basic requirements
+        # The schema will already check min length, email format, etc.
+        
+        # Perform additional custom password strength check
+        if not verify_password_strength(register_request.password):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=(
+                    "Password does not meet complexity requirements. "
+                    "Must contain uppercase, lowercase, numbers, and special characters. "
+                    "Minimum length is 12 characters."
+                )
+            )
+        
+        # Existing user creation logic
+        success = create_user(
+            db=db_session,
+            username=register_request.username,
+            email=register_request.email,
+            password=register_request.password,
+            full_name=register_request.full_name,
+            roles=[Roles.OBSERVER]
+        )
+        
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="User registration failed. Username or email might already exist."
+            )
+        
+        return RegisterResponse(
+            username=register_request.username,
+            email=register_request.email,
+            success=True,
+            message="User registered successfully"
         )
     
-    # Check if username/email is already taken
-    # This would check the database in a real implementation
-    # For now, just assume it's available
-    
-    # Hash the password
-    hashed_password = get_password_hash(register_request.password)
-    
-    # In a real implementation, you would save the user to the database here
-    # with the hashed password
-    
-    return RegisterResponse(
-        username=register_request.username,
-        email=register_request.email,
-        success=True,
-        message="User registered successfully"
-    )
+    except Exception as e:
+        # Log the error for debugging
+        logger.error(f"Registration error: {str(e)}")
+        
+        # Re-raise with appropriate status code
+        if isinstance(e, HTTPException):
+            raise
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="An unexpected error occurred during registration"
+            )
 
 
 @router.post("/logout")
-async def logout(token: str, current_user: UserAuth = Depends(get_current_active_user)):
+async def logout(
+    request: Request,
+    current_user: User = Depends(get_current_active_user),
+    db_session: PostgresDB = Depends(get_db)
+):
     """
-    Log out a user by blacklisting their token.
-    
-    Args:
-        token: Current access token
-        current_user: Current authenticated user
+    Log out a user securely.
+    """
+    try:
+        # Log logout event
+        log_auth_event(
+            db=db_session,
+            event_type="logout",
+            username=current_user.username,
+            success=True,
+            client_ip=request.client.host
+        )
         
-    Returns:
-        Logout status
-    """
-    blacklist_token(token)
-    return {"message": "Successfully logged out"}
+        # Optional: Implement token blacklisting for enhanced security
+        # This is a placeholder for a more robust token invalidation mechanism
+        
+        return {"message": "Successfully logged out"}
+    
+    except Exception as e:
+        logger.error(f"Logout error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Logout failed"
+        )
 
+@router.get("/me", response_model=UserResponse)
+async def get_user_me(
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Get authenticated user's information securely.
+    """
+    return UserResponse(
+        username=current_user.username,
+        email=current_user.email,
+        full_name=current_user.full_name,
+        scopes=current_user.roles
+    )
 
 @router.post("/password-reset-request")
-async def request_password_reset(reset_request: PasswordResetRequest):
+async def request_password_reset(
+    request: Request,
+    reset_request: PasswordResetRequest,
+    db_session: PostgresDB = Depends(get_db)
+):
     """
     Request a password reset.
     
     Args:
+        request: Request object
         reset_request: Password reset request with email
+        db_session: Database session
         
     Returns:
         Status message
@@ -239,26 +308,81 @@ async def request_password_reset(reset_request: PasswordResetRequest):
     # 2. Generate a password reset token
     # 3. Send an email with a link containing the token
     
+    # Log the attempt
+    log_auth_event(
+        db=db_session,
+        event_type="password_reset_request",
+        username=reset_request.email,  # Using email as username for this log
+        success=True,
+        client_ip=request.client.host
+    )
+    
     # For now, just return a success message
     return {
         "message": "If the email exists in our system, a password reset link has been sent."
     }
 
 
-@router.get("/me", response_model=UserResponse)
-async def get_user_me(current_user: UserAuth = Depends(get_current_active_user)):
+
+# Helper functions
+def verify_password_strength(password: str) -> bool:
     """
-    Get information about the current authenticated user.
+    Verify password meets comprehensive strength requirements.
     
     Args:
-        current_user: Current authenticated user
+        password: Password to check
         
     Returns:
-        User information
+        True if password is strong enough, False otherwise
+    
+    Checks:
+    - Minimum length of 12 characters
+    - Contains uppercase letters
+    - Contains lowercase letters
+    - Contains digits
+    - Contains special characters
+    - Prevents common weak patterns
     """
-    return UserResponse(
-        username=current_user.username,
-        email=current_user.email,
-        full_name=current_user.full_name,
-        scopes=current_user.scopes,
-    )
+    # Minimum length check
+    if len(password) < 12:
+        return False
+    
+    # Complexity checks using regex
+    has_upper = bool(re.search(r'[A-Z]', password))
+    has_lower = bool(re.search(r'[a-z]', password))
+    has_digit = bool(re.search(r'\d', password))
+    has_special = bool(re.search(r'[!@#$%^&*(),.?":{}|<>]', password))
+    
+    # Expanded list of common weak patterns
+    common_patterns = [
+        'password', 
+        '123456', 
+        'qwerty', 
+        'admin', 
+        'letmein',
+        'welcome',
+        '12345678',
+        'football',
+        '123123',
+        'dragon',
+        'baseball',
+        'abc123',
+        'monkey',
+        'master',
+        'sunshine',
+        'iloveyou'
+    ]
+    
+    # Check for common patterns (case-insensitive)
+    if any(pattern in password.lower() for pattern in common_patterns):
+        return False
+    
+    # Ensure all complexity criteria are met
+    complexity_criteria = [
+        has_upper, 
+        has_lower, 
+        has_digit, 
+        has_special
+    ]
+    
+    return all(complexity_criteria)

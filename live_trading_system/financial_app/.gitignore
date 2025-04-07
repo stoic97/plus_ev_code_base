@@ -10,3 +10,4 @@ echo ".env.test" >> .gitignore
 echo ".pytest_cache/" >> .gitignore
 echo ".coverage" >> .gitignore
 echo "htmlcov/" >> .gitignore
+echo "live_trading_system/financial_app/venv/" >> .gitignore

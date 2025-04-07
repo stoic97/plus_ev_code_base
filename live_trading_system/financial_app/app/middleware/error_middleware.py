@@ -15,7 +15,7 @@ from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR
 
-from app.core.error_handling import AppError, ErrorCategory, track_error
+from app.core.error_handling import AppError, ErrorCategory, ErrorTracker
 
 logger = logging.getLogger(__name__)
 
