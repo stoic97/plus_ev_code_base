@@ -51,7 +51,7 @@ def mock_db(mock_db_session):
 def mock_settings():
     """Create mock settings for testing."""
     settings = MagicMock()
-    # Create the nested security attribute
+    # Create the nested security attributew
     settings.security = MagicMock()
     settings.security.SECRET_KEY = "test_secret_key"
     settings.security.ALGORITHM = "HS256"
