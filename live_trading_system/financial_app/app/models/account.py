@@ -364,14 +364,14 @@ class Balance(Base):
         self.amount = self.available + self.reserved
 
 
-class Position(Base):
+class PortfolioPosition(Base):
     """
     Open trading position in the portfolio.
     
     Represents holdings of a specific instrument with detailed tracking
     of profit/loss, risk parameters, and exposure.
     """
-    __tablename__ = "positions"
+    __tablename__ = "PortfolioPositions"
     
     id = Column(Integer, primary_key=True, index=True)
     account_id = Column(Integer, ForeignKey("accounts.id", ondelete="CASCADE"), nullable=False)

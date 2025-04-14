@@ -468,13 +468,13 @@ class Execution(Base):
                 f"quantity={self.quantity}, price={self.price})>")
 
 
-class Position(Base):
+class ActivePosition(Base):
     """
     Trading position model.
     
     Represents a current position (holding) in a financial instrument.
     """
-    __tablename__ = "positions"
+    __tablename__ = "ActivePositions"
     
     id = Column(Integer, primary_key=True, index=True)
     account_id = Column(Integer, ForeignKey("accounts.id", ondelete="CASCADE"), nullable=False)
