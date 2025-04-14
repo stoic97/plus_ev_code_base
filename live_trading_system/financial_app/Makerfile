@@ -1,0 +1,138 @@
+# Trading Platform Makefile
+# Provides common commands for development and deployment
+
+# Default environment is development
+ENV ?= development
+
+# Docker compose file paths
+COMPOSE_FILE := ./docker-compose.yml
+COMPOSE_FILE_PROD := ./docker-compose.prod.yml
+
+# Database variables
+DB_TYPE ?= postgres # Options: postgres, timescale, all
+
+# Python commands
+PYTHON := python
+ALEMBIC := alembic
+PIP := pip
+
+# Get project directory
+ROOT_DIR := $(shell pwd)
+
+##
+## Database Commands
+##
+
+.PHONY: db-init
+db-init: ## Initialize databases (both PostgreSQL and TimescaleDB)
+	$(PYTHON) -m app.db.commands init
+
+.PHONY: db-init-postgres
+db-init-postgres: ## Initialize PostgreSQL database only
+	$(PYTHON) -m app.db.commands init --database postgres
+
+.PHONY: db-init-timescale
+db-init-timescale: ## Initialize TimescaleDB database only
+	$(PYTHON) -m app.db.commands init --database timescale
+
+.PHONY: db-revision
+db-revision: ## Create a new migration revision (requires -m "message")
+	@if [ -z "$(m)" ]; then \
+		echo "Error: Migration message is required. Usage: make db-revision m=\"Add user table\""; \
+		exit 1; \
+	fi
+	$(PYTHON) -m app.db.commands revision -m "$(m)" --database $(DB_TYPE) $(if $(a),--autogenerate,)
+
+.PHONY: db-migrate
+db-migrate: ## Run database migrations (upgrade to latest)
+	$(PYTHON) -m app.db.commands upgrade --database $(DB_TYPE)
+
+.PHONY: db-rollback
+db-rollback: ## Rollback the last migration
+	$(PYTHON) -m app.db.commands downgrade --database $(DB_TYPE) -r -1
+
+.PHONY: db-status
+db-status: ## Show current migration status
+	$(PYTHON) -m app.db.commands current --database $(DB_TYPE)
+
+.PHONY: db-history
+db-history: ## Show migration history
+	$(PYTHON) -m app.db.commands history --database $(DB_TYPE)
+
+.PHONY: db-drop
+db-drop: ## Drop all tables and reset the database (DANGEROUS!)
+	@echo "⚠️  WARNING: This will delete all data in the $(DB_TYPE) database!"
+	@echo "⚠️  To proceed, type 'yes' (in lowercase):"
+	@read -p "> " confirm; \
+	if [ "$$confirm" = "yes" ]; then \
+		$(PYTHON) -m app.db.commands downgrade --database $(DB_TYPE) -r base; \
+		echo "Database $(DB_TYPE) has been reset."; \
+	else \
+		echo "Operation canceled."; \
+	fi
+
+##
+## Deployment Commands
+##
+
+.PHONY: deploy-migrations
+deploy-migrations: ## Deploy migrations to specified environment
+	@bash app/db/migrations/scripts/deploy_migrations.sh -e $(ENV) -d $(DB_TYPE) -a upgrade
+
+.PHONY: deploy-rollback
+deploy-rollback: ## Rollback migrations in specified environment
+	@bash app/db/migrations/scripts/deploy_migrations.sh -e $(ENV) -d $(DB_TYPE) -a downgrade -r -1
+
+.PHONY: check-migrations
+check-migrations: ## Check migration status in specified environment
+	@bash app/db/migrations/scripts/deploy_migrations.sh -e $(ENV) -d $(DB_TYPE) -a current
+
+##
+## Docker Commands
+##
+
+.PHONY: docker-up
+docker-up: ## Start all services with Docker Compose
+	docker-compose -f $(COMPOSE_FILE) up -d
+
+.PHONY: docker-down
+docker-down: ## Stop all services
+	docker-compose -f $(COMPOSE_FILE) down
+
+.PHONY: docker-logs
+docker-logs: ## View logs from all containers
+	docker-compose -f $(COMPOSE_FILE) logs -f
+
+.PHONY: docker-rebuild
+docker-rebuild: ## Rebuild and restart containers
+	docker-compose -f $(COMPOSE_FILE) up -d --build
+
+##
+## Developer Tools
+##
+
+.PHONY: install
+install: ## Install dependencies
+	$(PIP) install -r requirements.txt
+	@echo "Dependencies installed successfully"
+
+.PHONY: test
+test: ## Run tests
+	pytest tests/
+
+.PHONY: setup-dev
+setup-dev: install ## Set up development environment
+	@echo "Creating .env file if it doesn't exist"
+	@if [ ! -f .env ]; then cp .env.example .env; fi
+	@echo "Setting up development environment completed"
+	@echo "Run 'make db-init' to initialize the database"
+
+##
+## Help
+##
+
+.PHONY: help
+help: ## Show this help
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
+
+.DEFAULT_GOAL := help
