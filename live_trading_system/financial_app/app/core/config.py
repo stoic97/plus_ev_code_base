@@ -400,7 +400,47 @@ class SecuritySettings(BaseSettings):
         default=["*"], 
         description="List of origins for CORS"
     )
-    
+     # Rate limiting settings
+    RATE_LIMIT_DEFAULT: int = Field(
+        default=100,
+        description="Default rate limit (requests per window)"
+    )
+    RATE_LIMIT_WINDOW_SECONDS: int = Field(
+        default=60,
+        description="Default rate limit window in seconds"
+    )
+    API_RATE_LIMIT: int = Field(
+        default=200,
+        description="Rate limit for API endpoints"
+    )
+    API_RATE_WINDOW_SECONDS: int = Field(
+        default=60,
+        description="Rate limit window for API endpoints in seconds"
+    )
+    AUTH_RATE_LIMIT: int = Field(
+        default=20,
+        description="Rate limit for authentication endpoints"
+    )
+    AUTH_RATE_WINDOW_SECONDS: int = Field(
+        default=60,
+        description="Rate limit window for authentication endpoints in seconds"
+    )
+    TRUSTED_RATE_LIMIT: int = Field(
+        default=1000,
+        description="Rate limit for trusted clients"
+    )
+    TRUSTED_RATE_WINDOW_SECONDS: int = Field(
+        default=60,
+        description="Rate limit window for trusted clients in seconds"
+    )
+    TRUSTED_IPS: List[str] = Field(
+        default=[],
+        description="List of trusted IP addresses or CIDR notations"
+    )
+    TRUSTED_API_KEYS: List[str] = Field(
+        default=[],
+        description="List of trusted API keys"
+    )
     model_config = SettingsConfigDict(
         env_prefix="SECURITY_",
         case_sensitive=True,
