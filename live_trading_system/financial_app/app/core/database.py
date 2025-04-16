@@ -769,17 +769,34 @@ class RedisDB(Database):
         Sets up connection pool and client.
         """
         try:
-            # Create Redis connection pool
-            self.connection_pool = redis.ConnectionPool(
-                host=self.settings.db.REDIS_HOST,
-                port=self.settings.db.REDIS_PORT,
-                db=self.settings.db.REDIS_DB,
-                password=self.settings.db.REDIS_PASSWORD,
-                ssl=self.settings.db.REDIS_SSL,
-                socket_timeout=self.settings.db.REDIS_SOCKET_TIMEOUT,
-                socket_connect_timeout=self.settings.db.REDIS_SOCKET_CONNECT_TIMEOUT,
-                max_connections=self.settings.db.REDIS_CONNECTION_POOL_SIZE
-            )
+            # Create connection parameters dict
+            connection_params = {
+                "host": self.settings.db.REDIS_HOST,
+                "port": self.settings.db.REDIS_PORT,
+                "db": self.settings.db.REDIS_DB,
+                "socket_timeout": self.settings.db.REDIS_SOCKET_TIMEOUT,
+                "socket_connect_timeout": self.settings.db.REDIS_SOCKET_CONNECT_TIMEOUT,
+                "max_connections": self.settings.db.REDIS_CONNECTION_POOL_SIZE
+            }
+            
+            # Only add password if provided
+            if self.settings.db.REDIS_PASSWORD:
+                connection_params["password"] = self.settings.db.REDIS_PASSWORD
+            
+            # Handle SSL correctly based on Redis library version
+            if self.settings.db.REDIS_SSL:
+                try:
+                    # Try the newer approach first
+                    connection_params["ssl"] = True
+                    self.connection_pool = redis.ConnectionPool(**connection_params)
+                except TypeError:
+                    # Fall back to the older approach if ssl param is rejected
+                    connection_params.pop("ssl")
+                    connection_params["ssl_cert_reqs"] = None
+                    self.connection_pool = redis.ConnectionPool(**connection_params)
+            else:
+                # No SSL needed
+                self.connection_pool = redis.ConnectionPool(**connection_params)
             
             # Create Redis client using connection pool
             self.client = redis.Redis(connection_pool=self.connection_pool)

@@ -27,7 +27,7 @@ from sqlalchemy import (
     ForeignKey, Text, Boolean, Index, CheckConstraint, 
     UniqueConstraint, Table, func, select, and_, or_, text, event, Enum as SQLAEnum
 )
-from sqlalchemy.orm import relationship, validates, column_property
+from sqlalchemy.orm import relationship, validates, column_property, backref
 from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.sql.expression import cast
@@ -154,7 +154,7 @@ class Order(Base):
     account = relationship("Account", back_populates="orders")
     executions = relationship("Execution", back_populates="order", cascade="all, delete-orphan")
     order_events = relationship("OrderEvent", back_populates="order", cascade="all, delete-orphan")
-    child_orders = relationship("Order", backref=relationship.backref("parent_order", remote_side=[order_id]))
+    child_orders = relationship("Order", backref=backref("parent_order", remote_side=[order_id]))
     
     # Indices and constraints
     __table_args__ = (

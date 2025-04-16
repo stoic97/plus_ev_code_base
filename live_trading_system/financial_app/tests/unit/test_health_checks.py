@@ -541,7 +541,7 @@ class TestDatabaseHealthChecks(unittest.TestCase):
         # Test with unhealthy status
         mock_db.check_health.return_value = False
         
-        result = check_postgres_health()
+        result = check_postgres_health.force_refresh()
         
         self.assertEqual(result.status, HealthStatus.UNHEALTHY)
         
@@ -555,14 +555,14 @@ class TestDatabaseHealthChecks(unittest.TestCase):
             "pool_checkedout": 9
         }
         
-        result = check_postgres_health()
+        result = check_postgres_health.force_refresh()
         
         self.assertEqual(result.status, HealthStatus.DEGRADED)
         
         # Test with exception
         mock_db.check_health.side_effect = Exception("Test error")
         
-        result = check_postgres_health()
+        result = check_postgres_health.force_refresh()
         
         self.assertEqual(result.status, HealthStatus.UNHEALTHY)
         self.assertIn("error", result.details)
@@ -584,7 +584,7 @@ class TestDatabaseHealthChecks(unittest.TestCase):
         mock_get_db_instance.return_value = mock_db
         
         # Test check_redis_health
-        result = check_redis_health()
+        result = check_redis_health.force_refresh()
         
         self.assertEqual(result.component, "redis")
         self.assertEqual(result.status, HealthStatus.HEALTHY)
