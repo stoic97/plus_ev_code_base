@@ -30,7 +30,7 @@ from app.core.database import PostgresDB, get_db
 
 
 # Create API router for authentication endpoints
-router = APIRouter(tags=["authentication"], prefix="/auth")
+# router = APIRouter(tags=["authentication"], prefix="/auth")
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -89,7 +89,7 @@ class Roles:
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # OAuth2 configuration with token URL
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token")
 
 
 #################################################
@@ -767,7 +767,7 @@ def admin_reset_password(
 # FastAPI Endpoints (to be included in routes)
 #################################################
 
-@router.post("/token", response_model=Token)
+# @router.post("/token", response_model=Token)
 async def login_for_access_token(
     request: Request,
     form_data: OAuth2PasswordRequestForm = Depends(),
@@ -868,7 +868,7 @@ async def login_for_access_token(
     }
 
 
-@router.post("/refresh-token", response_model=Token)
+# @router.post("/refresh-token", response_model=Token)
 async def refresh_access_token(
     request: Request,
     refresh_token: str,
