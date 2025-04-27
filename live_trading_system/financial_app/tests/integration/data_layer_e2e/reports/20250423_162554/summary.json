@@ -1,0 +1,81 @@
+{
+  "test_id": "20250423_162554",
+  "start_time": "2025-04-23T16:25:54.913570",
+  "end_time": "2025-04-23T16:26:33.175438",
+  "duration_seconds": 38.261868,
+  "overall_status": "FAIL",
+  "tests": {
+    "authentication": {
+      "status": "PASS",
+      "timestamp": "2025-04-23T16:25:55.439740",
+      "details": {
+        "token_generated": true
+      }
+    },
+    "broker_connection": {
+      "status": "PASS",
+      "timestamp": "2025-04-23T16:25:56.454542",
+      "details": {
+        "connected": true
+      }
+    },
+    "market_data_subscription": {
+      "status": "PASS",
+      "timestamp": "2025-04-23T16:25:57.085967",
+      "details": {
+        "subscribed_instruments": [
+          {
+            "symbol": "AAPL",
+            "exchange": "NASDAQ"
+          },
+          {
+            "symbol": "MSFT",
+            "exchange": "NASDAQ"
+          },
+          {
+            "symbol": "BTC/USD",
+            "exchange": "COINBASE"
+          }
+        ]
+      }
+    },
+    "kafka_producer": {
+      "status": "PASS",
+      "timestamp": "2025-04-23T16:25:58.615087",
+      "details": {
+        "message_count": 15
+      }
+    },
+    "kafka_consumer": {
+      "status": "PASS",
+      "timestamp": "2025-04-23T16:26:00.658855",
+      "details": {
+        "message_count": 15
+      }
+    },
+    "database_storage": {
+      "status": "PASS",
+      "timestamp": "2025-04-23T16:26:02.191822",
+      "details": {
+        "record_count": 18
+      }
+    },
+    "api_access": {
+      "status": "PASS",
+      "timestamp": "2025-04-23T16:26:03.111357",
+      "details": {
+        "response_count": 3
+      }
+    },
+    "continuous_monitoring": {
+      "status": "INTERRUPTED",
+      "timestamp": "2025-04-23T16:26:33.175438",
+      "details": {
+        "end_time": "2025-04-23T16:26:33.175438",
+        "actual_duration_minutes": 0.5010680166666667
+      }
+    }
+  },
+  "performance_metrics": {},
+  "error_summary": []
+}

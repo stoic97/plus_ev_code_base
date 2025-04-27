@@ -1,0 +1,250 @@
+{
+  "test_id": "20250426_122852",
+  "start_time": "2025-04-26T12:29:01.582054",
+  "end_time": "2025-04-26T12:29:24.290665",
+  "duration_seconds": 22.708611,
+  "overall_status": "FAIL",
+  "tests": {
+    "api_authentication": {
+      "status": "PASS",
+      "timestamp": "2025-04-26T12:29:11.856930",
+      "details": {
+        "note": "Using mock authentication",
+        "mock": true
+      }
+    },
+    "api_latest_data_AAPL_NASDAQ": {
+      "status": "PASS",
+      "timestamp": "2025-04-26T12:29:11.862110",
+      "details": {
+        "response_time_ms": 80,
+        "data_count": 10,
+        "mock": true
+      }
+    },
+    "api_latest_data_MSFT_NASDAQ": {
+      "status": "PASS",
+      "timestamp": "2025-04-26T12:29:11.873040",
+      "details": {
+        "response_time_ms": 62,
+        "data_count": 10,
+        "mock": true
+      }
+    },
+    "api_latest_data_BTC/USD_COINBASE": {
+      "status": "PASS",
+      "timestamp": "2025-04-26T12:29:11.879722",
+      "details": {
+        "response_time_ms": 98,
+        "data_count": 10,
+        "mock": true
+      }
+    },
+    "api_historical_data_AAPL_NASDAQ_last_hour": {
+      "status": "PASS",
+      "timestamp": "2025-04-26T12:29:11.886627",
+      "details": {
+        "response_time_ms": 112.5,
+        "data_count": 61,
+        "time_range": "2025-04-26 11:29:11.885627 to 2025-04-26 12:29:11.885627",
+        "mock": true
+      }
+    },
+    "api_historical_data_AAPL_NASDAQ_last_day": {
+      "status": "PASS",
+      "timestamp": "2025-04-26T12:29:11.901996",
+      "details": {
+        "response_time_ms": 400.0,
+        "data_count": 1000,
+        "time_range": "2025-04-25 12:29:11.885627 to 2025-04-26 12:29:11.885627",
+        "mock": true
+      }
+    },
+    "api_historical_data_AAPL_NASDAQ_custom_range": {
+      "status": "PASS",
+      "timestamp": "2025-04-26T12:29:11.911692",
+      "details": {
+        "response_time_ms": 400.0,
+        "data_count": 1000,
+        "time_range": "2025-04-25 12:28:52.614071 to 2025-04-26 12:28:52.614071",
+        "mock": true
+      }
+    },
+    "api_historical_data_MSFT_NASDAQ_last_hour": {
+      "status": "PASS",
+      "timestamp": "2025-04-26T12:29:11.925425",
+      "details": {
+        "response_time_ms": 112.5,
+        "data_count": 61,
+        "time_range": "2025-04-26 11:29:11.885627 to 2025-04-26 12:29:11.885627",
+        "mock": true
+      }
+    },
+    "api_historical_data_MSFT_NASDAQ_last_day": {
+      "status": "PASS",
+      "timestamp": "2025-04-26T12:29:11.938970",
+      "details": {
+        "response_time_ms": 400.0,
+        "data_count": 1000,
+        "time_range": "2025-04-25 12:29:11.885627 to 2025-04-26 12:29:11.885627",
+        "mock": true
+      }
+    },
+    "api_historical_data_MSFT_NASDAQ_custom_range": {
+      "status": "PASS",
+      "timestamp": "2025-04-26T12:29:11.955745",
+      "details": {
+        "response_time_ms": 400.0,
+        "data_count": 1000,
+        "time_range": "2025-04-25 12:28:52.614071 to 2025-04-26 12:28:52.614071",
+        "mock": true
+      }
+    },
+    "api_historical_data_BTC/USD_COINBASE_last_hour": {
+      "status": "PASS",
+      "timestamp": "2025-04-26T12:29:11.955745",
+      "details": {
+        "response_time_ms": 112.5,
+        "data_count": 61,
+        "time_range": "2025-04-26 11:29:11.885627 to 2025-04-26 12:29:11.885627",
+        "mock": true
+      }
+    },
+    "api_historical_data_BTC/USD_COINBASE_last_day": {
+      "status": "PASS",
+      "timestamp": "2025-04-26T12:29:11.975814",
+      "details": {
+        "response_time_ms": 400.0,
+        "data_count": 1000,
+        "time_range": "2025-04-25 12:29:11.885627 to 2025-04-26 12:29:11.885627",
+        "mock": true
+      }
+    },
+    "api_historical_data_BTC/USD_COINBASE_custom_range": {
+      "status": "PASS",
+      "timestamp": "2025-04-26T12:29:11.992022",
+      "details": {
+        "response_time_ms": 400.0,
+        "data_count": 1000,
+        "time_range": "2025-04-25 12:28:52.614071 to 2025-04-26 12:28:52.614071",
+        "mock": true
+      }
+    },
+    "api_data_consistency_AAPL_NASDAQ": {
+      "status": "FAIL",
+      "timestamp": "2025-04-26T12:29:24.215780",
+      "details": {},
+      "error": "Data consistency check failed: only 0.00% match (mock)"
+    },
+    "api_data_consistency_MSFT_NASDAQ": {
+      "status": "FAIL",
+      "timestamp": "2025-04-26T12:29:24.227570",
+      "details": {},
+      "error": "Data consistency check failed: only 0.00% match (mock)"
+    },
+    "api_data_consistency_BTC/USD_COINBASE": {
+      "status": "FAIL",
+      "timestamp": "2025-04-26T12:29:24.243426",
+      "details": {},
+      "error": "Data consistency check failed: only 0.00% match (mock)"
+    },
+    "api_error_handling_invalid_symbol": {
+      "status": "PASS",
+      "timestamp": "2025-04-26T12:29:24.253714",
+      "details": {
+        "expected_status": 404,
+        "mock": true,
+        "error_code": "resource_not_found",
+        "error_message": "Symbol not found"
+      }
+    },
+    "api_error_handling_missing_parameter": {
+      "status": "PASS",
+      "timestamp": "2025-04-26T12:29:24.260522",
+      "details": {
+        "expected_status": 400,
+        "mock": true,
+        "error_code": "missing_parameter",
+        "error_message": "Missing required parameter: exchange"
+      }
+    },
+    "api_error_handling_invalid_date_format": {
+      "status": "PASS",
+      "timestamp": "2025-04-26T12:29:24.266665",
+      "details": {
+        "expected_status": 400,
+        "mock": true,
+        "error_code": "invalid_parameter",
+        "error_message": "Invalid date format for start_time"
+      }
+    },
+    "api_error_handling_future_date": {
+      "status": "PASS",
+      "timestamp": "2025-04-26T12:29:24.271710",
+      "details": {
+        "expected_status": 400,
+        "mock": true,
+        "error_code": "invalid_date_range",
+        "error_message": "End date cannot be in the future"
+      }
+    },
+    "api_error_handling_unauthorized_access": {
+      "status": "PASS",
+      "timestamp": "2025-04-26T12:29:24.281858",
+      "details": {
+        "expected_status": 401,
+        "mock": true,
+        "error_code": "unauthorized",
+        "error_message": "Unauthorized access"
+      }
+    }
+  },
+  "performance_metrics": {},
+  "error_summary": [
+    {
+      "test_name": "api_data_consistency_AAPL_NASDAQ",
+      "timestamp": "2025-04-26T12:29:14.085589",
+      "error": "Data consistency check failed: only 0.00% match (mock)"
+    },
+    {
+      "test_name": "api_data_consistency_MSFT_NASDAQ",
+      "timestamp": "2025-04-26T12:29:14.107836",
+      "error": "Data consistency check failed: only 0.00% match (mock)"
+    },
+    {
+      "test_name": "api_data_consistency_BTC/USD_COINBASE",
+      "timestamp": "2025-04-26T12:29:14.121479",
+      "error": "Data consistency check failed: only 0.00% match (mock)"
+    },
+    {
+      "test_name": "api_data_consistency_AAPL_NASDAQ",
+      "timestamp": "2025-04-26T12:29:19.143724",
+      "error": "Data consistency check failed: only 0.00% match (mock)"
+    },
+    {
+      "test_name": "api_data_consistency_MSFT_NASDAQ",
+      "timestamp": "2025-04-26T12:29:19.162292",
+      "error": "Data consistency check failed: only 0.00% match (mock)"
+    },
+    {
+      "test_name": "api_data_consistency_BTC/USD_COINBASE",
+      "timestamp": "2025-04-26T12:29:19.180484",
+      "error": "Data consistency check failed: only 0.00% match (mock)"
+    },
+    {
+      "test_name": "api_data_consistency_AAPL_NASDAQ",
+      "timestamp": "2025-04-26T12:29:24.215780",
+      "error": "Data consistency check failed: only 0.00% match (mock)"
+    },
+    {
+      "test_name": "api_data_consistency_MSFT_NASDAQ",
+      "timestamp": "2025-04-26T12:29:24.227570",
+      "error": "Data consistency check failed: only 0.00% match (mock)"
+    },
+    {
+      "test_name": "api_data_consistency_BTC/USD_COINBASE",
+      "timestamp": "2025-04-26T12:29:24.243426",
+      "error": "Data consistency check failed: only 0.00% match (mock)"
+    }
+  ]
+}

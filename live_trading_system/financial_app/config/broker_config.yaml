@@ -1,0 +1,21 @@
+# Example for Binance (add only the broker you need)
+default:
+  rate_limit: 10
+  timeout: 30
+  retry_attempts: 3
+  retry_delay: 5
+
+brokers:
+  fyers:
+    enabled: true
+    name: "Fyers"
+    type: "futures"
+    base_url: "https://api.fyers.in/api/v3"
+    ws_url: "wss://api.fyers.in/socket/v3"
+    api_id: "GBJMHA44CH-100"      # Put your FYERS_CLIENT_ID here
+    api_secret: "YW54H05CG" # Put your FYERS_SECRET_KEY here
+    redirect_uri: "https://www.google.com/"
+    response_type: "code"
+    grant_type: "authorization_code"
+    webhook_passphrase: "pass_check123" # Add your WEBHOOK_PASSPHRASE here
+    # Username is not stored in config but used during authentication

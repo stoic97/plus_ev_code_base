@@ -14,6 +14,7 @@ os.environ["TESTING"] = "True"
 from app.main import app
 from app.core.database import get_db, DatabaseType
 from app.core.security import get_current_user, get_current_active_user
+from app.consumers.config.settings import KafkaSettings
 
 # Create mock user for authentication tests
 def get_mock_user():
@@ -53,3 +54,8 @@ def client():
     
     # Clean up after tests
     app.dependency_overrides.clear()
+
+@pytest.fixture(scope="session")
+def kafka_settings():
+    """Return a KafkaSettings instance for testing."""
+    return KafkaSettings()
