@@ -1,0 +1,11 @@
+2025-04-25 16:10:52,004 - __main__ - INFO - Starting database verification tests
+2025-04-25 16:10:52,019 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test reporting initialized. Report directory: D:\e backup\web development\plusEv\plusEV_code_base\plus_ev_code_base\live_trading_system\financial_app\tests\integration\data_layer_e2e\reports\20250425_161047
+2025-04-25 16:10:52,019 - db_verification - INFO - Connecting to database: trading_db at localhost
+2025-04-25 16:10:52,422 - db_verification - ERROR - Failed to connect to database: connection to server at "localhost" (::1), port 5432 failed: FATAL:  password authentication failed for user "test_user"
+
+2025-04-25 16:10:52,425 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'Database Connection' completed with status: FAIL
+2025-04-25 16:10:52,425 - financial_app.tests.integration.data_layer_e2e.utils.reporting - ERROR - Test 'Database Connection' error: Failed to connect to database: connection to server at "localhost" (::1), port 5432 failed: FATAL:  password authentication failed for user "test_user"
+
+2025-04-25 16:10:52,426 - db_verification - ERROR - Database connection failed, aborting verification
+2025-04-25 16:10:52,426 - db_verification - INFO - Database connection closed
+2025-04-25 16:10:52,426 - __main__ - ERROR - Database verification failed with exit code 1

@@ -1,0 +1,253 @@
+2025-04-26 12:28:55,387 - __main__ - INFO - Starting API access tests
+2025-04-26 12:28:55,387 - __main__ - INFO - Mock mode set to 'always' from command line
+2025-04-26 12:29:01,580 - __main__ - INFO - Service availability status:
+2025-04-26 12:29:01,580 - __main__ - INFO -   API: Not available
+2025-04-26 12:29:01,582 - __main__ - INFO -   Database: Available
+2025-04-26 12:29:01,582 - __main__ - INFO -   Kafka: Not available
+2025-04-26 12:29:01,582 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test reporting initialized. Report directory: D:\e backup\web development\plusEv\plusEV_code_base\plus_ev_code_base\live_trading_system\financial_app\tests\integration\data_layer_e2e\reports\20250426_122852
+2025-04-26 12:29:05,692 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Running in forced mock mode (MOCK_MODE=always)
+2025-04-26 12:29:05,692 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Starting API access tests...
+2025-04-26 12:29:11,856 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Service availability: API=False, Database=True, Kafka=False
+2025-04-26 12:29:11,856 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Test mode: MOCK
+2025-04-26 12:29:11,856 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Authenticating with API...
+2025-04-26 12:29:11,856 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Using mock authentication
+2025-04-26 12:29:11,862 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'api_authentication' completed with status: PASS
+2025-04-26 12:29:11,862 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Running test: Latest Data Endpoint
+2025-04-26 12:29:11,862 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Testing latest market data endpoint...
+2025-04-26 12:29:11,862 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Latest data endpoint test passed for AAPL from NASDAQ (mock)
+2025-04-26 12:29:11,871 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'api_latest_data_AAPL_NASDAQ' completed with status: PASS
+2025-04-26 12:29:11,871 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Latest data endpoint test passed for MSFT from NASDAQ (mock)
+2025-04-26 12:29:11,877 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'api_latest_data_MSFT_NASDAQ' completed with status: PASS
+2025-04-26 12:29:11,878 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Latest data endpoint test passed for BTC/USD from COINBASE (mock)
+2025-04-26 12:29:11,883 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'api_latest_data_BTC/USD_COINBASE' completed with status: PASS
+2025-04-26 12:29:11,884 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Test passed: Latest Data Endpoint
+2025-04-26 12:29:11,884 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Running test: Historical Data Endpoint
+2025-04-26 12:29:11,885 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Testing historical market data endpoint...
+2025-04-26 12:29:11,885 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Historical data endpoint test passed for AAPL from NASDAQ for last_hour (mock)
+2025-04-26 12:29:11,891 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'api_historical_data_AAPL_NASDAQ_last_hour' completed with status: PASS
+2025-04-26 12:29:11,901 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Historical data endpoint test passed for AAPL from NASDAQ for last_day (mock)
+2025-04-26 12:29:11,908 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'api_historical_data_AAPL_NASDAQ_last_day' completed with status: PASS
+2025-04-26 12:29:11,911 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Historical data endpoint test passed for AAPL from NASDAQ for custom_range (mock)
+2025-04-26 12:29:11,921 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'api_historical_data_AAPL_NASDAQ_custom_range' completed with status: PASS
+2025-04-26 12:29:11,924 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Historical data endpoint test passed for MSFT from NASDAQ for last_hour (mock)
+2025-04-26 12:29:11,930 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'api_historical_data_MSFT_NASDAQ_last_hour' completed with status: PASS
+2025-04-26 12:29:11,938 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Historical data endpoint test passed for MSFT from NASDAQ for last_day (mock)
+2025-04-26 12:29:11,942 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'api_historical_data_MSFT_NASDAQ_last_day' completed with status: PASS
+2025-04-26 12:29:11,955 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Historical data endpoint test passed for MSFT from NASDAQ for custom_range (mock)
+2025-04-26 12:29:11,955 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'api_historical_data_MSFT_NASDAQ_custom_range' completed with status: PASS
+2025-04-26 12:29:11,955 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Historical data endpoint test passed for BTC/USD from COINBASE for last_hour (mock)
+2025-04-26 12:29:11,965 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'api_historical_data_BTC/USD_COINBASE_last_hour' completed with status: PASS
+2025-04-26 12:29:11,974 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Historical data endpoint test passed for BTC/USD from COINBASE for last_day (mock)
+2025-04-26 12:29:11,978 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'api_historical_data_BTC/USD_COINBASE_last_day' completed with status: PASS
+2025-04-26 12:29:11,992 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Historical data endpoint test passed for BTC/USD from COINBASE for custom_range (mock)
+2025-04-26 12:29:11,992 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'api_historical_data_BTC/USD_COINBASE_custom_range' completed with status: PASS
+2025-04-26 12:29:11,992 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Test passed: Historical Data Endpoint
+2025-04-26 12:29:11,992 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Running test: Data Consistency
+2025-04-26 12:29:11,992 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Testing data consistency between API and database...
+2025-04-26 12:29:14,081 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Forced mock mode. Using mock data comparison.
+2025-04-26 12:29:14,081 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Using mock data consistency check
+2025-04-26 12:29:14,081 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Sample API item: {'symbol': 'AAPL', 'exchange': 'NASDAQ', 'price': 150.25, 'volume': 1000, 'timestamp': '2025-04-26T12:29:14.081831', 'source': 'mock_data'}
+2025-04-26 12:29:14,084 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Sample DB item: {'symbol': 'AAPL', 'exchange': 'NASDAQ', 'price': 164.9745, 'volume': 1000, 'timestamp': '2025-04-26T12:29:14.081831', 'source': 'mock_data'}
+2025-04-26 12:29:14,084 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Added artificial failure at index 0: 197.9694
+2025-04-26 12:29:14,085 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Comparing 10 API records with 10 DB records for AAPL (mock)
+2025-04-26 12:29:14,085 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 0: API=150.25, DB=197.9694, diff=47.71940000000001
+2025-04-26 12:29:14,085 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 1: API=150.2, DB=155.9076, diff=5.7076000000000136
+2025-04-26 12:29:14,085 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 2: API=150.15, DB=166.36620000000002, diff=16.216200000000015
+2025-04-26 12:29:14,085 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 3: API=150.1, DB=155.5036, diff=5.4036000000000115
+2025-04-26 12:29:14,085 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 4: API=150.05, DB=165.95530000000002, diff=15.905300000000011
+2025-04-26 12:29:14,085 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 5: API=150.0, DB=157.8, diff=7.800000000000011
+2025-04-26 12:29:14,085 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 6: API=149.95, DB=162.8457, diff=12.895700000000005
+2025-04-26 12:29:14,085 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 7: API=149.9, DB=178.0812, diff=28.18119999999999
+2025-04-26 12:29:14,085 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 8: API=149.85, DB=170.52929999999998, diff=20.679299999999984
+2025-04-26 12:29:14,085 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 9: API=149.8, DB=174.6668, diff=24.866799999999984
+2025-04-26 12:29:14,085 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Found 0 matches out of 10 records, 0.00% match rate (mock)
+2025-04-26 12:29:14,085 - financial_app.tests.integration.data_layer_e2e.test_api_access - ERROR - Data consistency test failed for AAPL from NASDAQ: only 0.00% match (mock)
+2025-04-26 12:29:14,094 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'api_data_consistency_AAPL_NASDAQ' completed with status: FAIL
+2025-04-26 12:29:14,095 - financial_app.tests.integration.data_layer_e2e.utils.reporting - ERROR - Test 'api_data_consistency_AAPL_NASDAQ' error: Data consistency check failed: only 0.00% match (mock)
+2025-04-26 12:29:14,096 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Sample API item: {'symbol': 'MSFT', 'exchange': 'NASDAQ', 'price': 300.5, 'volume': 1000, 'timestamp': '2025-04-26T12:29:14.096983', 'source': 'mock_data'}
+2025-04-26 12:29:14,100 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Sample DB item: {'symbol': 'MSFT', 'exchange': 'NASDAQ', 'price': 344.974, 'volume': 1000, 'timestamp': '2025-04-26T12:29:14.096983', 'source': 'mock_data'}
+2025-04-26 12:29:14,101 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Added artificial failure at index 0: 413.9688
+2025-04-26 12:29:14,101 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Comparing 10 API records with 10 DB records for MSFT (mock)
+2025-04-26 12:29:14,102 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 0: API=300.5, DB=413.9688, diff=113.46879999999999
+2025-04-26 12:29:14,103 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 1: API=300.45, DB=311.2662, diff=10.816200000000038
+2025-04-26 12:29:14,103 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 2: API=300.4, DB=311.8152, diff=11.415200000000027
+2025-04-26 12:29:14,104 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 3: API=300.35, DB=356.8158, diff=56.4658
+2025-04-26 12:29:14,104 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 4: API=300.3, DB=332.73240000000004, diff=32.43240000000003
+2025-04-26 12:29:14,105 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 5: API=300.25, DB=342.285, diff=42.035000000000025
+2025-04-26 12:29:14,105 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 6: API=300.2, DB=305.0032, diff=4.803200000000004
+2025-04-26 12:29:14,105 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 7: API=300.15, DB=334.3671, diff=34.217100000000016
+2025-04-26 12:29:14,105 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 8: API=300.1, DB=301.3004, diff=1.200400000000002
+2025-04-26 12:29:14,106 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 9: API=300.05, DB=355.2592, diff=55.20920000000001
+2025-04-26 12:29:14,106 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Found 0 matches out of 10 records, 0.00% match rate (mock)
+2025-04-26 12:29:14,107 - financial_app.tests.integration.data_layer_e2e.test_api_access - ERROR - Data consistency test failed for MSFT from NASDAQ: only 0.00% match (mock)
+2025-04-26 12:29:14,113 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'api_data_consistency_MSFT_NASDAQ' completed with status: FAIL
+2025-04-26 12:29:14,114 - financial_app.tests.integration.data_layer_e2e.utils.reporting - ERROR - Test 'api_data_consistency_MSFT_NASDAQ' error: Data consistency check failed: only 0.00% match (mock)
+2025-04-26 12:29:14,114 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Sample API item: {'symbol': 'BTC/USD', 'exchange': 'COINBASE', 'price': 35000.0, 'volume': 1000, 'timestamp': '2025-04-26T12:29:14.114307', 'source': 'mock_data'}
+2025-04-26 12:29:14,114 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Sample DB item: {'symbol': 'BTC/USD', 'exchange': 'COINBASE', 'price': 39269.99999999999, 'volume': 1000, 'timestamp': '2025-04-26T12:29:14.114307', 'source': 'mock_data'}
+2025-04-26 12:29:14,114 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Added artificial failure at index 0: 47123.99999999999
+2025-04-26 12:29:14,114 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Comparing 10 API records with 10 DB records for BTC/USD (mock)
+2025-04-26 12:29:14,114 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 0: API=35000.0, DB=47123.99999999999, diff=12123.999999999993
+2025-04-26 12:29:14,114 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 1: API=34999.95, DB=35559.949199999995, diff=559.9991999999984
+2025-04-26 12:29:14,114 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 2: API=34999.9, DB=38989.888600000006, diff=3989.988600000004
+2025-04-26 12:29:14,119 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 3: API=34999.85, DB=41719.8212, diff=6719.9712
+2025-04-26 12:29:14,120 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 4: API=34999.8, DB=36609.7908, diff=1609.9907999999996
+2025-04-26 12:29:14,120 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 5: API=34999.75, DB=39339.719000000005, diff=4339.969000000005
+2025-04-26 12:29:14,120 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 6: API=34999.7, DB=39059.6652, diff=4059.965200000006
+2025-04-26 12:29:14,121 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 7: API=34999.65, DB=40249.597499999996, diff=5249.947499999995
+2025-04-26 12:29:14,121 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 8: API=34999.6, DB=38289.5624, diff=3289.962400000004
+2025-04-26 12:29:14,121 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 9: API=34999.55, DB=37659.51580000001, diff=2659.9658000000054
+2025-04-26 12:29:14,121 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Found 0 matches out of 10 records, 0.00% match rate (mock)
+2025-04-26 12:29:14,121 - financial_app.tests.integration.data_layer_e2e.test_api_access - ERROR - Data consistency test failed for BTC/USD from COINBASE: only 0.00% match (mock)
+2025-04-26 12:29:14,121 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'api_data_consistency_BTC/USD_COINBASE' completed with status: FAIL
+2025-04-26 12:29:14,121 - financial_app.tests.integration.data_layer_e2e.utils.reporting - ERROR - Test 'api_data_consistency_BTC/USD_COINBASE' error: Data consistency check failed: only 0.00% match (mock)
+2025-04-26 12:29:14,131 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Retrying Data Consistency (attempt 2/3)...
+2025-04-26 12:29:19,132 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Testing data consistency between API and database...
+2025-04-26 12:29:19,134 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Forced mock mode. Using mock data comparison.
+2025-04-26 12:29:19,135 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Using mock data consistency check
+2025-04-26 12:29:19,136 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Sample API item: {'symbol': 'AAPL', 'exchange': 'NASDAQ', 'price': 150.25, 'volume': 1000, 'timestamp': '2025-04-26T12:29:19.136775', 'source': 'mock_data'}
+2025-04-26 12:29:19,137 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Sample DB item: {'symbol': 'AAPL', 'exchange': 'NASDAQ', 'price': 162.5705, 'volume': 1000, 'timestamp': '2025-04-26T12:29:19.136775', 'source': 'mock_data'}
+2025-04-26 12:29:19,137 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Added artificial failure at index 0: 195.0846
+2025-04-26 12:29:19,138 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Comparing 10 API records with 10 DB records for AAPL (mock)
+2025-04-26 12:29:19,139 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 0: API=150.25, DB=195.0846, diff=44.834599999999995
+2025-04-26 12:29:19,140 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 1: API=150.2, DB=165.8208, diff=15.620800000000003
+2025-04-26 12:29:19,140 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 2: API=150.15, DB=171.17100000000002, diff=21.021000000000015
+2025-04-26 12:29:19,140 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 3: API=150.1, DB=177.71839999999997, diff=27.61839999999998
+2025-04-26 12:29:19,141 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 4: API=150.05, DB=154.5515, diff=4.501499999999993
+2025-04-26 12:29:19,141 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 5: API=150.0, DB=172.5, diff=22.5
+2025-04-26 12:29:19,141 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 6: API=149.95, DB=171.54279999999997, diff=21.592799999999983
+2025-04-26 12:29:19,141 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 7: API=149.9, DB=163.99060000000003, diff=14.090600000000023
+2025-04-26 12:29:19,141 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 8: API=149.85, DB=163.9359, diff=14.08590000000001
+2025-04-26 12:29:19,142 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 9: API=149.8, DB=156.39120000000003, diff=6.591200000000015
+2025-04-26 12:29:19,142 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Found 0 matches out of 10 records, 0.00% match rate (mock)
+2025-04-26 12:29:19,142 - financial_app.tests.integration.data_layer_e2e.test_api_access - ERROR - Data consistency test failed for AAPL from NASDAQ: only 0.00% match (mock)
+2025-04-26 12:29:19,147 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'api_data_consistency_AAPL_NASDAQ' completed with status: FAIL
+2025-04-26 12:29:19,148 - financial_app.tests.integration.data_layer_e2e.utils.reporting - ERROR - Test 'api_data_consistency_AAPL_NASDAQ' error: Data consistency check failed: only 0.00% match (mock)
+2025-04-26 12:29:19,155 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Sample API item: {'symbol': 'MSFT', 'exchange': 'NASDAQ', 'price': 300.5, 'volume': 1000, 'timestamp': '2025-04-26T12:29:19.154806', 'source': 'mock_data'}
+2025-04-26 12:29:19,156 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Sample DB item: {'symbol': 'MSFT', 'exchange': 'NASDAQ', 'price': 344.373, 'volume': 1000, 'timestamp': '2025-04-26T12:29:19.154806', 'source': 'mock_data'}
+2025-04-26 12:29:19,157 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Added artificial failure at index 0: 413.2476
+2025-04-26 12:29:19,157 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Comparing 10 API records with 10 DB records for MSFT (mock)
+2025-04-26 12:29:19,158 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 0: API=300.5, DB=413.2476, diff=112.74759999999998
+2025-04-26 12:29:19,158 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 1: API=300.45, DB=332.2977, diff=31.84770000000003
+2025-04-26 12:29:19,159 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 2: API=300.4, DB=336.448, diff=36.048
+2025-04-26 12:29:19,159 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 3: API=300.35, DB=349.0067, diff=48.6567
+2025-04-26 12:29:19,160 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 4: API=300.3, DB=341.14080000000007, diff=40.84080000000006
+2025-04-26 12:29:19,160 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 5: API=300.25, DB=314.66200000000003, diff=14.412000000000035
+2025-04-26 12:29:19,160 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 6: API=300.2, DB=300.80039999999997, diff=0.6003999999999792
+2025-04-26 12:29:19,161 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 7: API=300.15, DB=315.7578, diff=15.607799999999997
+2025-04-26 12:29:19,161 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 8: API=300.1, DB=307.9026, diff=7.802599999999984
+2025-04-26 12:29:19,162 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 9: API=300.05, DB=328.2547, diff=28.204700000000003
+2025-04-26 12:29:19,162 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Found 0 matches out of 10 records, 0.00% match rate (mock)
+2025-04-26 12:29:19,162 - financial_app.tests.integration.data_layer_e2e.test_api_access - ERROR - Data consistency test failed for MSFT from NASDAQ: only 0.00% match (mock)
+2025-04-26 12:29:19,167 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'api_data_consistency_MSFT_NASDAQ' completed with status: FAIL
+2025-04-26 12:29:19,171 - financial_app.tests.integration.data_layer_e2e.utils.reporting - ERROR - Test 'api_data_consistency_MSFT_NASDAQ' error: Data consistency check failed: only 0.00% match (mock)
+2025-04-26 12:29:19,171 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Sample API item: {'symbol': 'BTC/USD', 'exchange': 'COINBASE', 'price': 35000.0, 'volume': 1000, 'timestamp': '2025-04-26T12:29:19.171855', 'source': 'mock_data'}
+2025-04-26 12:29:19,171 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Sample DB item: {'symbol': 'BTC/USD', 'exchange': 'COINBASE', 'price': 38360.0, 'volume': 1000, 'timestamp': '2025-04-26T12:29:19.171855', 'source': 'mock_data'}
+2025-04-26 12:29:19,171 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Added artificial failure at index 0: 46032.0
+2025-04-26 12:29:19,171 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Comparing 10 API records with 10 DB records for BTC/USD (mock)
+2025-04-26 12:29:19,171 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 0: API=35000.0, DB=46032.0, diff=11032.0
+2025-04-26 12:29:19,171 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 1: API=34999.95, DB=40599.941999999995, diff=5599.991999999998
+2025-04-26 12:29:19,171 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 2: API=34999.9, DB=35139.899600000004, diff=139.99960000000283
+2025-04-26 12:29:19,171 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 3: API=34999.85, DB=39339.8314, diff=4339.981400000004
+2025-04-26 12:29:19,171 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 4: API=34999.8, DB=35979.794400000006, diff=979.9944000000032
+2025-04-26 12:29:19,171 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 5: API=34999.75, DB=40389.7115, diff=5389.961499999998
+2025-04-26 12:29:19,171 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 6: API=34999.7, DB=39409.66219999999, diff=4409.9621999999945
+2025-04-26 12:29:19,171 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 7: API=34999.65, DB=38009.619900000005, diff=3009.9699000000037
+2025-04-26 12:29:19,171 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 8: API=34999.6, DB=39899.544, diff=4899.944000000003
+2025-04-26 12:29:19,179 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 9: API=34999.55, DB=41439.4672, diff=6439.917199999996
+2025-04-26 12:29:19,179 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Found 0 matches out of 10 records, 0.00% match rate (mock)
+2025-04-26 12:29:19,179 - financial_app.tests.integration.data_layer_e2e.test_api_access - ERROR - Data consistency test failed for BTC/USD from COINBASE: only 0.00% match (mock)
+2025-04-26 12:29:19,181 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'api_data_consistency_BTC/USD_COINBASE' completed with status: FAIL
+2025-04-26 12:29:19,181 - financial_app.tests.integration.data_layer_e2e.utils.reporting - ERROR - Test 'api_data_consistency_BTC/USD_COINBASE' error: Data consistency check failed: only 0.00% match (mock)
+2025-04-26 12:29:19,181 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Retrying Data Consistency (attempt 3/3)...
+2025-04-26 12:29:24,187 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Testing data consistency between API and database...
+2025-04-26 12:29:24,205 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Forced mock mode. Using mock data comparison.
+2025-04-26 12:29:24,205 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Using mock data consistency check
+2025-04-26 12:29:24,206 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Sample API item: {'symbol': 'AAPL', 'exchange': 'NASDAQ', 'price': 150.25, 'volume': 1000, 'timestamp': '2025-04-26T12:29:24.206765', 'source': 'mock_data'}
+2025-04-26 12:29:24,207 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Sample DB item: {'symbol': 'AAPL', 'exchange': 'NASDAQ', 'price': 178.1965, 'volume': 1000, 'timestamp': '2025-04-26T12:29:24.206765', 'source': 'mock_data'}
+2025-04-26 12:29:24,207 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Added artificial failure at index 0: 213.83579999999998
+2025-04-26 12:29:24,208 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Comparing 10 API records with 10 DB records for AAPL (mock)
+2025-04-26 12:29:24,208 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 0: API=150.25, DB=213.83579999999998, diff=63.58579999999998
+2025-04-26 12:29:24,209 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 1: API=150.2, DB=175.1332, diff=24.9332
+2025-04-26 12:29:24,210 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 2: API=150.15, DB=154.9548, diff=4.8048
+2025-04-26 12:29:24,210 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 3: API=150.1, DB=157.9052, diff=7.8052000000000135
+2025-04-26 12:29:24,211 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 4: API=150.05, DB=161.75390000000002, diff=11.703900000000004
+2025-04-26 12:29:24,211 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 5: API=150.0, DB=178.2, diff=28.19999999999999
+2025-04-26 12:29:24,211 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 6: API=149.95, DB=172.74239999999998, diff=22.792399999999986
+2025-04-26 12:29:24,211 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 7: API=149.9, DB=157.395, diff=7.4950000000000045
+2025-04-26 12:29:24,211 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 8: API=149.85, DB=175.32449999999997, diff=25.474499999999978
+2025-04-26 12:29:24,211 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 9: API=149.8, DB=174.9664, diff=25.16639999999998
+2025-04-26 12:29:24,211 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Found 0 matches out of 10 records, 0.00% match rate (mock)
+2025-04-26 12:29:24,211 - financial_app.tests.integration.data_layer_e2e.test_api_access - ERROR - Data consistency test failed for AAPL from NASDAQ: only 0.00% match (mock)
+2025-04-26 12:29:24,219 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'api_data_consistency_AAPL_NASDAQ' completed with status: FAIL
+2025-04-26 12:29:24,220 - financial_app.tests.integration.data_layer_e2e.utils.reporting - ERROR - Test 'api_data_consistency_AAPL_NASDAQ' error: Data consistency check failed: only 0.00% match (mock)
+2025-04-26 12:29:24,221 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Sample API item: {'symbol': 'MSFT', 'exchange': 'NASDAQ', 'price': 300.5, 'volume': 1000, 'timestamp': '2025-04-26T12:29:24.220255', 'source': 'mock_data'}
+2025-04-26 12:29:24,221 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Sample DB item: {'symbol': 'MSFT', 'exchange': 'NASDAQ', 'price': 319.732, 'volume': 1000, 'timestamp': '2025-04-26T12:29:24.220255', 'source': 'mock_data'}
+2025-04-26 12:29:24,222 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Added artificial failure at index 0: 383.6784
+2025-04-26 12:29:24,222 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Comparing 10 API records with 10 DB records for MSFT (mock)
+2025-04-26 12:29:24,222 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 0: API=300.5, DB=383.6784, diff=83.17840000000001
+2025-04-26 12:29:24,223 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 1: API=300.45, DB=355.73279999999994, diff=55.28279999999995
+2025-04-26 12:29:24,223 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 2: API=300.4, DB=358.07679999999993, diff=57.67679999999996
+2025-04-26 12:29:24,224 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 3: API=300.35, DB=310.56190000000004, diff=10.211900000000014
+2025-04-26 12:29:24,224 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 4: API=300.3, DB=329.1288, diff=28.8288
+2025-04-26 12:29:24,224 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 5: API=300.25, DB=306.255, diff=6.0049999999999955
+2025-04-26 12:29:24,225 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 6: API=300.2, DB=357.23799999999994, diff=57.037999999999954
+2025-04-26 12:29:24,225 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 7: API=300.15, DB=338.5692, diff=38.419200000000046
+2025-04-26 12:29:24,225 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 8: API=300.1, DB=311.5038, diff=11.40379999999999
+2025-04-26 12:29:24,226 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 9: API=300.05, DB=343.2572, diff=43.2072
+2025-04-26 12:29:24,227 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Found 0 matches out of 10 records, 0.00% match rate (mock)
+2025-04-26 12:29:24,227 - financial_app.tests.integration.data_layer_e2e.test_api_access - ERROR - Data consistency test failed for MSFT from NASDAQ: only 0.00% match (mock)
+2025-04-26 12:29:24,231 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'api_data_consistency_MSFT_NASDAQ' completed with status: FAIL
+2025-04-26 12:29:24,231 - financial_app.tests.integration.data_layer_e2e.utils.reporting - ERROR - Test 'api_data_consistency_MSFT_NASDAQ' error: Data consistency check failed: only 0.00% match (mock)
+2025-04-26 12:29:24,231 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Sample API item: {'symbol': 'BTC/USD', 'exchange': 'COINBASE', 'price': 35000.0, 'volume': 1000, 'timestamp': '2025-04-26T12:29:24.231616', 'source': 'mock_data'}
+2025-04-26 12:29:24,231 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Sample DB item: {'symbol': 'BTC/USD', 'exchange': 'COINBASE', 'price': 38430.0, 'volume': 1000, 'timestamp': '2025-04-26T12:29:24.231616', 'source': 'mock_data'}
+2025-04-26 12:29:24,234 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Added artificial failure at index 0: 46116.0
+2025-04-26 12:29:24,234 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Comparing 10 API records with 10 DB records for BTC/USD (mock)
+2025-04-26 12:29:24,235 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 0: API=35000.0, DB=46116.0, diff=11116.0
+2025-04-26 12:29:24,236 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 1: API=34999.95, DB=41719.94039999999, diff=6719.990399999995
+2025-04-26 12:29:24,237 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 2: API=34999.9, DB=39059.8884, diff=4059.988400000002
+2025-04-26 12:29:24,238 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 3: API=34999.85, DB=37099.841, diff=2099.991000000002
+2025-04-26 12:29:24,238 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 4: API=34999.8, DB=38499.780000000006, diff=3499.980000000003
+2025-04-26 12:29:24,239 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 5: API=34999.75, DB=35629.7455, diff=629.9954999999973
+2025-04-26 12:29:24,241 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 6: API=34999.7, DB=40529.652599999994, diff=5529.952599999997
+2025-04-26 12:29:24,241 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 7: API=34999.65, DB=41929.5807, diff=6929.930699999997
+2025-04-26 12:29:24,241 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 8: API=34999.6, DB=38079.5648, diff=3079.9648000000016
+2025-04-26 12:29:24,242 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Price mismatch at idx 9: API=34999.55, DB=39269.4951, diff=4269.945099999997
+2025-04-26 12:29:24,242 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Found 0 matches out of 10 records, 0.00% match rate (mock)
+2025-04-26 12:29:24,243 - financial_app.tests.integration.data_layer_e2e.test_api_access - ERROR - Data consistency test failed for BTC/USD from COINBASE: only 0.00% match (mock)
+2025-04-26 12:29:24,247 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'api_data_consistency_BTC/USD_COINBASE' completed with status: FAIL
+2025-04-26 12:29:24,249 - financial_app.tests.integration.data_layer_e2e.utils.reporting - ERROR - Test 'api_data_consistency_BTC/USD_COINBASE' error: Data consistency check failed: only 0.00% match (mock)
+2025-04-26 12:29:24,249 - financial_app.tests.integration.data_layer_e2e.test_api_access - ERROR - Test failed after 3 retries: Data Consistency
+2025-04-26 12:29:24,251 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Running test: Error Handling
+2025-04-26 12:29:24,252 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Testing API error handling...
+2025-04-26 12:29:24,252 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Testing error case: invalid_symbol
+2025-04-26 12:29:24,253 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Error handling test passed for invalid_symbol (mock)
+2025-04-26 12:29:24,258 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'api_error_handling_invalid_symbol' completed with status: PASS
+2025-04-26 12:29:24,259 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Testing error case: missing_parameter
+2025-04-26 12:29:24,259 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Error handling test passed for missing_parameter (mock)
+2025-04-26 12:29:24,266 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'api_error_handling_missing_parameter' completed with status: PASS
+2025-04-26 12:29:24,266 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Testing error case: invalid_date_format
+2025-04-26 12:29:24,266 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Error handling test passed for invalid_date_format (mock)
+2025-04-26 12:29:24,271 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'api_error_handling_invalid_date_format' completed with status: PASS
+2025-04-26 12:29:24,271 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Testing error case: future_date
+2025-04-26 12:29:24,271 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Error handling test passed for future_date (mock)
+2025-04-26 12:29:24,281 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'api_error_handling_future_date' completed with status: PASS
+2025-04-26 12:29:24,281 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Testing error case: unauthorized_access
+2025-04-26 12:29:24,281 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Error handling test passed for unauthorized_access (mock)
+2025-04-26 12:29:24,281 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'api_error_handling_unauthorized_access' completed with status: PASS
+2025-04-26 12:29:24,281 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Test passed: Error Handling
+2025-04-26 12:29:24,289 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - API access tests completed. Some tests failed.
+2025-04-26 12:29:24,297 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test report finalized with overall status: FAIL
+2025-04-26 12:29:24,298 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Report available at: D:\e backup\web development\plusEv\plusEV_code_base\plus_ev_code_base\live_trading_system\financial_app\tests\integration\data_layer_e2e\reports\20250426_122852
+2025-04-26 12:29:24,299 - __main__ - INFO - Performance Metrics:
+2025-04-26 12:29:24,299 - __main__ - INFO - api_authentication_ms: avg=120.00ms, p95=120.00ms
+2025-04-26 12:29:24,300 - __main__ - INFO - api_response_time_ms: avg=80.00ms, p95=98.00ms
+2025-04-26 12:29:24,300 - __main__ - INFO - api_latest_data_ms: avg=7.50ms, p95=9.87ms
+2025-04-26 12:29:24,300 - __main__ - INFO - api_historical_response_time_last_hour_ms: avg=112.50ms, p95=112.50ms
+2025-04-26 12:29:24,300 - __main__ - INFO - api_historical_data_last_hour_ms: avg=7.63ms, p95=9.54ms
+2025-04-26 12:29:24,300 - __main__ - INFO - api_historical_response_time_last_day_ms: avg=400.00ms, p95=400.00ms
+2025-04-26 12:29:24,301 - __main__ - INFO - api_historical_data_last_day_ms: avg=15.37ms, p95=17.58ms
+2025-04-26 12:29:24,302 - __main__ - INFO - api_historical_response_time_custom_range_ms: avg=400.00ms, p95=400.00ms
+2025-04-26 12:29:24,303 - __main__ - INFO - api_historical_data_custom_range_ms: avg=12.47ms, p95=13.86ms
+2025-04-26 12:29:24,304 - __main__ - INFO - api_data_fetch_ms: avg=0.00ms, p95=0.00ms
+2025-04-26 12:29:24,304 - __main__ - INFO - db_data_fetch_ms: avg=0.11ms, p95=0.97ms
+2025-04-26 12:29:24,305 - __main__ - INFO - API access tests completed with FAILURE

@@ -1,0 +1,41 @@
+2025-04-23 16:25:54,929 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test reporting initialized. Report directory: D:\e backup\web development\plusEv\plusEV_code_base\plus_ev_code_base\live_trading_system\financial_app\tests\integration\data_layer_e2e\reports\20250423_162554
+2025-04-23 16:25:54,929 - e2e_test - INFO - Starting end-to-end test suite with ID: 20250423_162554
+2025-04-23 16:25:54,929 - e2e_test - INFO - Starting authentication test...
+2025-04-23 16:25:55,439 - e2e_test - INFO - Authentication successful
+2025-04-23 16:25:55,439 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'authentication' completed with status: PASS
+2025-04-23 16:25:55,439 - e2e_test - INFO - Testing broker connection...
+2025-04-23 16:25:56,453 - e2e_test - INFO - Broker connection successful
+2025-04-23 16:25:56,457 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'broker_connection' completed with status: PASS
+2025-04-23 16:25:56,458 - e2e_test - INFO - Testing market data subscription...
+2025-04-23 16:25:56,663 - e2e_test - INFO - Subscribed to AAPL on NASDAQ
+2025-04-23 16:25:56,869 - e2e_test - INFO - Subscribed to MSFT on NASDAQ
+2025-04-23 16:25:57,085 - e2e_test - INFO - Subscribed to BTC/USD on COINBASE
+2025-04-23 16:25:57,085 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'market_data_subscription' completed with status: PASS
+2025-04-23 16:25:57,085 - e2e_test - INFO - Testing Kafka producer...
+2025-04-23 16:25:58,615 - e2e_test - INFO - Produced 15 messages to Kafka
+2025-04-23 16:25:58,615 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'kafka_producer' completed with status: PASS
+2025-04-23 16:25:58,615 - e2e_test - INFO - Testing Kafka consumer...
+2025-04-23 16:26:00,658 - e2e_test - INFO - Consumed 15 messages from Kafka
+2025-04-23 16:26:00,663 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'kafka_consumer' completed with status: PASS
+2025-04-23 16:26:00,663 - e2e_test - INFO - Testing database storage...
+2025-04-23 16:26:01,180 - financial_app.tests.integration.data_layer_e2e.utils.performance - WARNING - Performance metric db_write_latency_ms exceeded threshold: 400.0 > 200
+2025-04-23 16:26:01,689 - financial_app.tests.integration.data_layer_e2e.utils.performance - WARNING - Performance metric db_write_latency_ms exceeded threshold: 400.0 > 200
+2025-04-23 16:26:02,190 - financial_app.tests.integration.data_layer_e2e.utils.performance - WARNING - Performance metric db_write_latency_ms exceeded threshold: 400.0 > 200
+2025-04-23 16:26:02,190 - e2e_test - INFO - Stored 18 records in database
+2025-04-23 16:26:02,195 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'database_storage' completed with status: PASS
+2025-04-23 16:26:02,196 - e2e_test - INFO - Testing API access...
+2025-04-23 16:26:02,500 - e2e_test - INFO - Successfully queried data for AAPL on NASDAQ
+2025-04-23 16:26:02,807 - e2e_test - INFO - Successfully queried data for MSFT on NASDAQ
+2025-04-23 16:26:03,111 - e2e_test - INFO - Successfully queried data for BTC/USD on COINBASE
+2025-04-23 16:26:03,111 - e2e_test - INFO - Successfully made 3 API requests
+2025-04-23 16:26:03,111 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'api_access' completed with status: PASS
+2025-04-23 16:26:03,111 - e2e_test - INFO - Starting continuous monitoring for 30 minutes...
+2025-04-23 16:26:03,126 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'continuous_monitoring' completed with status: RUNNING
+2025-04-23 16:26:32,444 - e2e_test - INFO - Test interrupted. Cleaning up and generating report...
+2025-04-23 16:26:33,175 - e2e_test - INFO - Continuous monitoring interrupted
+2025-04-23 16:26:33,175 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'continuous_monitoring' completed with status: INTERRUPTED
+2025-04-23 16:26:33,190 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test report finalized with overall status: FAIL
+2025-04-23 16:26:33,190 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Report available at: D:\e backup\web development\plusEv\plusEV_code_base\plus_ev_code_base\live_trading_system\financial_app\tests\integration\data_layer_e2e\reports\20250423_162554
+2025-04-23 16:26:33,222 - e2e_test - INFO - Test completed with status: FAIL
+2025-04-23 16:26:33,222 - e2e_test - INFO - Test report available at: D:\e backup\web development\plusEv\plusEV_code_base\plus_ev_code_base\live_trading_system\financial_app\tests\integration\data_layer_e2e\reports\20250423_162554\summary.json
+2025-04-23 16:26:33,222 - e2e_test - INFO - HTML report available at: D:\e backup\web development\plusEv\plusEV_code_base\plus_ev_code_base\live_trading_system\financial_app\tests\integration\data_layer_e2e\reports\20250423_162554\report.html

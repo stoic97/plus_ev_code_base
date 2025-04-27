@@ -1,0 +1,25 @@
+2025-04-25 16:21:30,999 - __main__ - INFO - Starting database verification tests
+2025-04-25 16:21:31,000 - db_verification - INFO - Using real database connection for verification
+2025-04-25 16:21:31,008 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test reporting initialized. Report directory: D:\e backup\web development\plusEv\plusEV_code_base\plus_ev_code_base\live_trading_system\financial_app\tests\integration\data_layer_e2e\reports\20250425_162129
+2025-04-25 16:21:31,009 - db_verification - INFO - Connecting to database: trading_db at localhost
+2025-04-25 16:21:31,113 - db_verification - ERROR - Failed to connect to database: connection to server at "localhost" (::1), port 5432 failed: FATAL:  password authentication failed for user "test_user"
+
+2025-04-25 16:21:31,117 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'Database Connection' completed with status: FAIL
+2025-04-25 16:21:31,119 - financial_app.tests.integration.data_layer_e2e.utils.reporting - ERROR - Test 'Database Connection' error: Failed to connect to database: connection to server at "localhost" (::1), port 5432 failed: FATAL:  password authentication failed for user "test_user"
+
+2025-04-25 16:21:31,119 - db_verification - WARNING - Database connection failed, falling back to mock database
+2025-04-25 16:21:31,125 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test reporting initialized. Report directory: D:\e backup\web development\plusEv\plusEV_code_base\plus_ev_code_base\live_trading_system\financial_app\tests\integration\data_layer_e2e\reports\20250425_162129
+2025-04-25 16:21:31,126 - db_verification - INFO - Mock database initialized with data for symbols: AAPL, MSFT, BTC/USD
+2025-04-25 16:21:31,127 - db_verification - INFO - Connecting to mock database
+2025-04-25 16:21:31,127 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'Database Connection' completed with status: PASS
+2025-04-25 16:21:31,127 - db_verification - INFO - Starting verification for AAPL
+2025-04-25 16:21:31,133 - db_verification - ERROR - Error during database verification: 'PerformanceTracker' object has no attribute 'timed_operation'
+Traceback (most recent call last):
+  File "D:\e backup\web development\plusEv\plusEV_code_base\plus_ev_code_base\live_trading_system\financial_app\tests\integration\data_layer_e2e\verify_db_storage.py", line 1087, in main
+    verifier.verify_data_insertion(symbol, hours=24)
+  File "D:\e backup\web development\plusEv\plusEV_code_base\plus_ev_code_base\live_trading_system\financial_app\tests\integration\data_layer_e2e\verify_db_storage.py", line 827, in verify_data_insertion
+    with self.perf_tracker.timed_operation("verify_data_insertion"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'PerformanceTracker' object has no attribute 'timed_operation'
+2025-04-25 16:21:31,138 - db_verification - INFO - Mock database connection closed
+2025-04-25 16:21:31,139 - __main__ - ERROR - Database verification failed with exit code 1

@@ -1,0 +1,7 @@
+2025-04-25 01:13:02,446 - __main__ - INFO - === Starting Kafka Producer Verification ===
+2025-04-25 01:13:02,451 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test reporting initialized. Report directory: D:\e backup\web development\plusEv\plusEV_code_base\plus_ev_code_base\live_trading_system\financial_app\tests\integration\data_layer_e2e\reports\20250425_011300
+2025-04-25 01:13:02,457 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test reporting initialized. Report directory: D:\e backup\web development\plusEv\plusEV_code_base\plus_ev_code_base\live_trading_system\financial_app\tests\integration\data_layer_e2e\reports\20250425_011300
+2025-04-25 01:13:02,458 - __main__ - INFO - Starting Kafka producer verification tests
+2025-04-25 01:13:02,459 - __main__ - INFO - Setting up Kafka producer verification test
+2025-04-25 01:13:02,483 - kafka.conn - INFO - <BrokerConnection client_id=kafka-python-2.1.5, node_id=bootstrap-0 host=localhost:9092 <connecting> [IPv6 ('::1', 9092, 0, 0)]>: connecting to localhost:9092 [('::1', 9092, 0, 0) IPv6]
+2025-04-25 01:13:04,477 - __main__ - INFO - === Completed Kafka Producer Verification ===

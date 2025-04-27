@@ -49,3 +49,6 @@ sqlalchemy-filters>=0.13.0  # Dynamic filtering for SQLAlchemy queries
 python-dateutil>=2.8.2      # Better date/time handling
 validators>=0.22.0          # Input validation helpers
 pytest-postgresql>=5.0.0  # PostgreSQL testing fixtures for pytest
+
+pyyaml
+requests

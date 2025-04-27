@@ -1,0 +1,16 @@
+{
+  "test_id": "20250425_162129",
+  "start_time": "2025-04-25T16:21:31.119382",
+  "end_time": null,
+  "duration_seconds": null,
+  "overall_status": "RUNNING",
+  "tests": {
+    "Database Connection": {
+      "status": "PASS",
+      "timestamp": "2025-04-25T16:21:31.127439",
+      "details": "Connected to mock database"
+    }
+  },
+  "performance_metrics": {},
+  "error_summary": []
+}

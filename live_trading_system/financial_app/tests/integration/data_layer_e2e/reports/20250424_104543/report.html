@@ -1,0 +1,134 @@
+
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>E2E Test Report - 20250424_104543</title>
+        <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            h1, h2, h3 { color: #333; }
+            .summary { background-color: #f5f5f5; padding: 15px; border-radius: 5px; }
+            .pass { color: green; }
+            .fail { color: red; }
+            .skip { color: orange; }
+            table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th { background-color: #f2f2f2; }
+            tr:nth-child(even) { background-color: #f9f9f9; }
+            .charts { display: flex; flex-wrap: wrap; margin-top: 20px; }
+            .chart { margin: 10px; }
+        </style>
+    </head>
+    <body>
+        <h1>End-to-End Test Report</h1>
+        
+        <div class="summary">
+            <h2>Summary</h2>
+            <p><strong>Test ID:</strong> 20250424_104543</p>
+            <p><strong>Status:</strong> <span class="fail">FAIL</span></p>
+            <p><strong>Start Time:</strong> 2025-04-24T10:45:45.689761</p>
+            <p><strong>End Time:</strong> 2025-04-24T10:45:53.876386</p>
+            <p><strong>Duration:</strong> 8.186625 seconds</p>
+        </div>
+        
+        <h2>Test Results</h2>
+        <table>
+            <tr>
+                <th>Test Name</th>
+                <th>Status</th>
+                <th>Timestamp</th>
+                <th>Details</th>
+            </tr>
+    
+            <tr>
+                <td>authentication</td>
+                <td class="pass">PASS</td>
+                <td>2025-04-24T10:45:46.195144</td>
+                <td><pre>{
+  "token_generated": true
+}</pre></td>
+            </tr>
+        
+            <tr>
+                <td>broker_connection</td>
+                <td class="pass">PASS</td>
+                <td>2025-04-24T10:45:47.207399</td>
+                <td><pre>{
+  "connected": true
+}</pre></td>
+            </tr>
+        
+            <tr>
+                <td>market_data_subscription</td>
+                <td class="pass">PASS</td>
+                <td>2025-04-24T10:45:47.830281</td>
+                <td><pre>{
+  "subscribed_instruments": [
+    {
+      "symbol": "AAPL",
+      "exchange": "NASDAQ"
+    },
+    {
+      "symbol": "MSFT",
+      "exchange": "NASDAQ"
+    },
+    {
+      "symbol": "BTC/USD",
+      "exchange": "COINBASE"
+    }
+  ]
+}</pre></td>
+            </tr>
+        
+            <tr>
+                <td>kafka_producer</td>
+                <td class="pass">PASS</td>
+                <td>2025-04-24T10:45:49.364560</td>
+                <td><pre>{
+  "message_count": 15
+}</pre></td>
+            </tr>
+        
+            <tr>
+                <td>kafka_consumer</td>
+                <td class="pass">PASS</td>
+                <td>2025-04-24T10:45:51.404716</td>
+                <td><pre>{
+  "message_count": 15
+}</pre></td>
+            </tr>
+        
+            <tr>
+                <td>database_storage</td>
+                <td class="pass">PASS</td>
+                <td>2025-04-24T10:45:52.915933</td>
+                <td><pre>{
+  "record_count": 18
+}</pre></td>
+            </tr>
+        
+            <tr>
+                <td>api_access</td>
+                <td class="pass">PASS</td>
+                <td>2025-04-24T10:45:53.866106</td>
+                <td><pre>{
+  "response_count": 3
+}</pre></td>
+            </tr>
+        
+            <tr>
+                <td>continuous_monitoring</td>
+                <td class="interrupted">INTERRUPTED</td>
+                <td>2025-04-24T10:45:53.876386</td>
+                <td><pre>{
+  "end_time": "2025-04-24T10:45:53.876386",
+  "actual_duration_minutes": 0.00017133333333333331
+}</pre></td>
+            </tr>
+        
+        </table>
+        
+        <h2>Performance Metrics</h2>
+    <p>No performance metrics available.</p>
+    </body>
+    </html>
+    
