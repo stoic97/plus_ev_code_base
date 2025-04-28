@@ -1,0 +1,2 @@
+[pytest11]
+pytest_postgresql = pytest_postgresql.plugin
