@@ -3,6 +3,7 @@ Pytest configuration and fixtures for all tests.
 """
 
 import os
+import sys
 import pytest
 from fastapi.testclient import TestClient
 from unittest.mock import MagicMock
@@ -16,6 +17,10 @@ from app.core.database import get_db, DatabaseType
 from app.core.security import get_current_user, get_current_active_user
 from app.consumers.config.settings import KafkaSettings
 
+
+
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.insert(0, project_root)
 # Create mock user for authentication tests
 def get_mock_user():
     """Return a mock user for testing."""
