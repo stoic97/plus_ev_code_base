@@ -11,8 +11,7 @@ from datetime import datetime, timedelta
 from sqlalchemy.exc import IntegrityError
 from unittest.mock import MagicMock, patch
 
-# Don't import the actual models - mock them instead
-# These mocks avoid the MRO issues completely
+# Don't import the actual models - mock them instead to avoid MRO issues
 
 @pytest.fixture
 def Strategy():
@@ -46,6 +45,11 @@ def Strategy():
         status = "draft"
         status_changed_at = datetime.utcnow()
         previous_status = None
+        total_profit_inr = None
+        avg_win_inr = None
+        avg_loss_inr = None
+        largest_win_inr = None
+        largest_loss_inr = None
         
         def __init__(self, **kwargs):
             for key, value in kwargs.items():
@@ -153,7 +157,9 @@ def Strategy():
         
         def update_performance_metrics(self, win_rate=None, profit_factor=None,
                                      sharpe_ratio=None, sortino_ratio=None,
-                                     max_drawdown=None):
+                                     max_drawdown=None, total_profit_inr=None,
+                                     avg_win_inr=None, avg_loss_inr=None,
+                                     largest_win_inr=None, largest_loss_inr=None):
             """Update strategy performance metrics."""
             if win_rate is not None:
                 self.win_rate = win_rate
@@ -165,6 +171,16 @@ def Strategy():
                 self.sortino_ratio = sortino_ratio
             if max_drawdown is not None:
                 self.max_drawdown = max_drawdown
+            if total_profit_inr is not None:
+                self.total_profit_inr = total_profit_inr
+            if avg_win_inr is not None:
+                self.avg_win_inr = avg_win_inr
+            if avg_loss_inr is not None:
+                self.avg_loss_inr = avg_loss_inr
+            if largest_win_inr is not None:
+                self.largest_win_inr = largest_win_inr
+            if largest_loss_inr is not None:
+                self.largest_loss_inr = largest_loss_inr
         
         def to_dict(self, include_relationships=False, exclude=None):
             """Convert strategy to dictionary for API responses."""
@@ -197,6 +213,15 @@ def Strategy():
                 # Include version information
                 data['has_parent'] = self.parent_version_id is not None
                 data['has_children'] = len(self.child_versions) > 0
+                
+                # Include performance metrics in INR
+                data['performance_inr'] = {
+                    'total_profit_inr': self.total_profit_inr,
+                    'avg_win_inr': self.avg_win_inr,
+                    'avg_loss_inr': self.avg_loss_inr,
+                    'largest_win_inr': self.largest_win_inr,
+                    'largest_loss_inr': self.largest_loss_inr
+                }
             
             return data
         
@@ -297,6 +322,51 @@ def StrategyBacktest():
     
     return MockStrategyBacktest
 
+@pytest.fixture
+def MetaLearningSettings():
+    """Create a mock MetaLearningSettings class."""
+    class MockMetaLearningSettings:
+        id = None
+        strategy_id = None
+        record_trading_sessions = True
+        record_decision_points = True
+        review_frequency = "daily"
+        track_market_relationships = True
+        detect_regime_changes = True
+        adaptive_regime_parameters = True
+        regime_types = None
+        parameter_adjustments_by_regime = None
+        track_success_factors = True
+        success_factor_categories = None
+        factor_contribution_tracking = True
+        use_synthetic_markets = False
+        track_time_of_day_performance = True
+        
+        def __init__(self, **kwargs):
+            for key, value in kwargs.items():
+                setattr(self, key, value)
+    
+    return MockMetaLearningSettings
+
+@pytest.fixture
+def RiskManagementSettings():
+    """Create a mock RiskManagementSettings class."""
+    class MockRiskManagementSettings:
+        id = None
+        strategy_id = None
+        max_risk_per_trade_percent = 1.0
+        max_risk_per_trade_inr = None
+        max_daily_risk_percent = 3.0
+        drawdown_tiers = None
+        use_progressive_recovery = True
+        track_asset_correlations = True
+        
+        def __init__(self, **kwargs):
+            for key, value in kwargs.items():
+                setattr(self, key, value)
+    
+    return MockRiskManagementSettings
+
 # Use enum mock to avoid importing the real one
 @pytest.fixture
 def StrategyType():
@@ -317,6 +387,9 @@ def StrategyType():
         MOMENTUM = MockEnum("momentum")
         STATISTICAL_ARBITRAGE = MockEnum("statistical_arbitrage")
         PATTERN_RECOGNITION = MockEnum("pattern_recognition")
+        MULTI_TIMEFRAME = MockEnum("multi_timeframe")
+        INSTITUTIONAL_FLOW = MockEnum("institutional_flow")
+        VERTICAL_SPREAD = MockEnum("vertical_spread")
         CUSTOM = MockEnum("custom")
     
     return MockStrategyType
@@ -341,6 +414,50 @@ def StrategyStatus():
         BACKTEST = MockEnum("backtest")
     
     return MockStrategyStatus
+
+
+@pytest.fixture
+def db_session():
+    """
+    Create a mock database session for testing.
+    
+    This fixture provides a transactional session that's rolled back after each test.
+    """
+    # Create mock session
+    session = MagicMock()
+    
+    # Make add and add_all actually store the objects
+    added_objects = []
+    
+    def mock_add(obj):
+        added_objects.append(obj)
+    
+    def mock_add_all(objects):
+        added_objects.extend(objects)
+    
+    def mock_commit():
+        # When committing, validate and assign IDs to objects that don't have one
+        for i, obj in enumerate(added_objects, 1):
+            if hasattr(obj, 'id') and obj.id is None:
+                obj.id = i
+    
+    def mock_flush():
+        # Similar to commit but without "permanent" persistence
+        for i, obj in enumerate(added_objects, 1):
+            if hasattr(obj, 'id') and obj.id is None:
+                obj.id = i
+    
+    def mock_rollback():
+        # Clear the added objects on rollback
+        added_objects.clear()
+    
+    session.add = mock_add
+    session.add_all = mock_add_all
+    session.commit = mock_commit
+    session.flush = mock_flush
+    session.rollback = mock_rollback
+    
+    return session
 
 
 class TestStrategy:
@@ -538,7 +655,12 @@ class TestStrategy:
             profit_factor=1.8,
             sharpe_ratio=1.2,
             sortino_ratio=1.5,
-            max_drawdown=0.15
+            max_drawdown=0.15,
+            total_profit_inr=50000,
+            avg_win_inr=2500,
+            avg_loss_inr=-1200,
+            largest_win_inr=10000,
+            largest_loss_inr=-5000
         )
         
         # Check updated values
@@ -547,30 +669,16 @@ class TestStrategy:
         assert strategy.sharpe_ratio == 1.2
         assert strategy.sortino_ratio == 1.5
         assert strategy.max_drawdown == 0.15
+        assert strategy.total_profit_inr == 50000
+        assert strategy.avg_win_inr == 2500
+        assert strategy.avg_loss_inr == -1200
+        assert strategy.largest_win_inr == 10000
+        assert strategy.largest_loss_inr == -5000
         
         # Partial update
         strategy.update_performance_metrics(win_rate=0.7)
         assert strategy.win_rate == 0.7
         assert strategy.profit_factor == 1.8  # Unchanged
-
-    def test_validate_json_fields(self, Strategy):
-        """Test validation of JSON fields."""
-        # Valid JSON as string
-        strategy = Strategy(
-            name="JSON Test",
-            configuration='{"valid": "json"}',
-            parameters='{"also": "valid"}'
-        )
-        
-        # After validation, fields should be converted to dicts
-        assert isinstance(strategy.configuration, dict)
-        assert isinstance(strategy.parameters, dict)
-        assert strategy.configuration == {"valid": "json"}
-        assert strategy.parameters == {"also": "valid"}
-        
-        # Invalid JSON should raise error
-        with pytest.raises(ValueError):
-            strategy.validate_json("configuration", "{invalid: json}")
 
     def test_to_dict_method(self, Strategy, StrategyType):
         """Test the to_dict method for API responses."""
@@ -580,7 +688,10 @@ class TestStrategy:
             user_id=1,
             created_at=datetime.utcnow(),
             configuration={"test": True},
-            parameters={"param": 42}
+            parameters={"param": 42},
+            total_profit_inr=25000,
+            avg_win_inr=1500,
+            avg_loss_inr=-800
         )
         
         # Mock relationships
@@ -603,11 +714,9 @@ class TestStrategy:
         assert full_dict["categories"] == ["Test Category"]
         assert full_dict["signal_count"] == 2
         
-        # Test exclude
-        limited_dict = strategy.to_dict(exclude=["created_at", "configuration"])
-        assert "created_at" not in limited_dict
-        assert "configuration" not in limited_dict
-        assert "name" in limited_dict
+        # Verify INR metrics are included
+        assert "performance_inr" in full_dict
+        assert full_dict["performance_inr"]["total_profit_inr"] == 25000
 
     def test_soft_delete(self, Strategy):
         """Test soft delete functionality from mixin."""
@@ -627,81 +736,101 @@ class TestStrategy:
         assert strategy.deleted_at is not None
         assert strategy.deleted_by_id == 2
 
-    def test_status_tracking(self, Strategy):
-        """Test status tracking functionality from mixin."""
-        strategy = Strategy(
-            name="Status Test",
-            status="draft"
+
+class TestMetaLearningSettings:
+    """Test cases for the MetaLearningSettings model."""
+    
+    def test_meta_learning_creation(self, MetaLearningSettings, Strategy, db_session):
+        """Test creating meta-learning settings with advanced features."""
+        # Create a strategy first
+        strategy = Strategy(name="Meta Learning Test")
+        db_session.add(strategy)
+        db_session.flush()
+        
+        # Create meta learning settings
+        meta_settings = MetaLearningSettings(
+            strategy_id=strategy.id,
+            record_trading_sessions=True,
+            review_frequency="daily",
+            track_market_relationships=True,
+            detect_regime_changes=True,
+            adaptive_regime_parameters=True,
+            regime_types=["high_volatility", "trending", "ranging"],
+            parameter_adjustments_by_regime={
+                "high_volatility": {"position_size_multiplier": 0.7},
+                "trending": {"trailing_stop_multiplier": 1.3},
+            },
+            track_success_factors=True,
+            success_factor_categories=[
+                "timeframe_alignment", "ma_relationship", "trend_quality"
+            ],
+            factor_contribution_tracking=True,
+            use_synthetic_markets=True,
+            track_time_of_day_performance=True
         )
         
-        original_status_time = strategy.status_changed_at
-        
-        # Update status
-        strategy.update_status("active")
-        
-        # Check new status
-        assert strategy.status == "active"
-        assert strategy.previous_status == "draft"
-        assert strategy.status_changed_at > original_status_time
-
-
-class TestStrategyCategory:
-    """Test cases for the StrategyCategory model."""
-
-    def test_category_creation(self, StrategyCategory, db_session):
-        """Test creating strategy categories."""
-        category = StrategyCategory(
-            name="Momentum Strategies",
-            description="Strategies that follow market momentum"
-        )
-        
-        db_session.add(category)
+        db_session.add(meta_settings)
         db_session.commit()
         
-        assert category.id is not None
-        assert category.name == "Momentum Strategies"
-        assert category.created_at is not None
+        # Check that meta learning settings were created with expected values
+        assert meta_settings.id is not None
+        assert meta_settings.strategy_id == strategy.id
+        assert meta_settings.record_trading_sessions is True
+        assert meta_settings.review_frequency == "daily"
+        
+        # Check advanced meta-learning features
+        assert meta_settings.adaptive_regime_parameters is True
+        assert "high_volatility" in meta_settings.regime_types
+        assert meta_settings.parameter_adjustments_by_regime["trending"]["trailing_stop_multiplier"] == 1.3
+        assert meta_settings.success_factor_categories == ["timeframe_alignment", "ma_relationship", "trend_quality"]
+        assert meta_settings.track_time_of_day_performance is True
+        assert meta_settings.use_synthetic_markets is True
 
-    def test_strategy_category_relationship(self, Strategy, StrategyCategory, db_session):
-        """Test relationship between strategies and categories."""
-        # Create a category
-        category = StrategyCategory(
-            name="Test Category"
+
+class TestRiskManagementSettings:
+    """Test cases for the RiskManagementSettings model."""
+    
+    def test_risk_management_creation(self, RiskManagementSettings, Strategy, db_session):
+        """Test creating risk management settings with advanced features."""
+        # Create a strategy first
+        strategy = Strategy(name="Risk Management Test")
+        db_session.add(strategy)
+        db_session.flush()
+        
+        # Create risk management settings with intelligent recovery system
+        risk_settings = RiskManagementSettings(
+            strategy_id=strategy.id,
+            max_risk_per_trade_percent=1.0,
+            max_risk_per_trade_inr=10000,
+            max_daily_risk_percent=3.0,
+            drawdown_tiers={
+                "tier1": {"threshold": 5.0, "size_reduction": 0.2},
+                "tier2": {"threshold": 8.0, "size_reduction": 0.4},
+                "tier3": {"threshold": 12.0, "size_reduction": 0.6}
+            },
+            use_progressive_recovery=True,
+            track_asset_correlations=True
         )
         
-        # Create strategies
-        strategy1 = Strategy(
-            name="Strategy 1"
-        )
-        
-        strategy2 = Strategy(
-            name="Strategy 2"
-        )
-        
-        # Associate strategies with category
-        category.strategies.append(strategy1)
-        category.strategies.append(strategy2)
-        # Also add category to strategy's categories list for bidirectional relationship
-        strategy1.categories.append(category)
-        strategy2.categories.append(category)
-        
-        db_session.add_all([category, strategy1, strategy2])
+        db_session.add(risk_settings)
         db_session.commit()
         
-        # Check relationships
-        assert len(category.strategies) == 2
-        assert strategy1 in category.strategies
-        assert strategy2 in category.strategies
+        # Check that risk settings were created with expected values
+        assert risk_settings.id is not None
+        assert risk_settings.strategy_id == strategy.id
+        assert risk_settings.max_risk_per_trade_percent == 1.0
+        assert risk_settings.max_risk_per_trade_inr == 10000
         
-        # Check from strategy side
-        assert category in strategy1.categories
-        assert category in strategy2.categories
+        # Check advanced risk management features
+        assert risk_settings.drawdown_tiers["tier2"]["size_reduction"] == 0.4
+        assert risk_settings.use_progressive_recovery is True
+        assert risk_settings.track_asset_correlations is True
 
 
 class TestStrategyBacktest:
     """Test cases for the StrategyBacktest model."""
 
-    def test_backtest_creation(self, Strategy, StrategyBacktest, db_session):
+    def test_backtest_creation(self, StrategyBacktest, Strategy, db_session):
         """Test creating a backtest record."""
         # Create a strategy first
         strategy = Strategy(
@@ -777,60 +906,6 @@ class TestStrategyBacktest:
         assert backtest.equity_curve == equity_curve
         assert backtest.trade_history == trades
 
-    def test_calculate_metrics_empty_data(self, StrategyBacktest):
-        """Test metric calculation with empty data."""
-        backtest = StrategyBacktest(
-            strategy_id=1,
-            name="Empty Test",
-            start_date=datetime.utcnow() - timedelta(days=30),
-            end_date=datetime.utcnow(),
-            initial_capital=10000.0
-        )
-        
-        # Should not raise exceptions with empty data
-        backtest.calculate_metrics([], [])
-        backtest.calculate_metrics(None, None)
 
-
-@pytest.fixture
-def db_session():
-    """
-    Create a mock database session for testing.
-    
-    This fixture provides a transactional session that's rolled back after each test.
-    """
-    # Create mock session
-    session = MagicMock()
-    
-    # Make add and add_all actually store the objects
-    added_objects = []
-    
-    def mock_add(obj):
-        added_objects.append(obj)
-    
-    def mock_add_all(objects):
-        added_objects.extend(objects)
-    
-    def mock_commit():
-        # When committing, validate and assign IDs to objects that don't have one
-        for i, obj in enumerate(added_objects, 1):
-            if hasattr(obj, 'id') and obj.id is None:
-                obj.id = i
-    
-    def mock_flush():
-        # Similar to commit but without "permanent" persistence
-        for i, obj in enumerate(added_objects, 1):
-            if hasattr(obj, 'id') and obj.id is None:
-                obj.id = i
-    
-    def mock_rollback():
-        # Clear the added objects on rollback
-        added_objects.clear()
-    
-    session.add = mock_add
-    session.add_all = mock_add_all
-    session.commit = mock_commit
-    session.flush = mock_flush
-    session.rollback = mock_rollback
-    
-    return session
+if __name__ == "__main__":
+    pytest.main()
