@@ -1,0 +1,2 @@
+[console_scripts]
+port-for = port_for.cmd:main
