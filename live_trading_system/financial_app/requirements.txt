@@ -52,3 +52,4 @@ pytest-postgresql>=5.0.0  # PostgreSQL testing fixtures for pytest
 
 pyyaml
 requests
+setuptools>=65.0.0
