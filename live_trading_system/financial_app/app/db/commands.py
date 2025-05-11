@@ -87,7 +87,7 @@ class MigrationManager:
         config.attributes['database'] = self.database
         
         # Set the script location based on database
-        scripts_dir = f"app/db/migrations/{self.database}"
+        scripts_dir = "app/db/migrations"
         config.set_main_option("script_location", scripts_dir)
         
         return config

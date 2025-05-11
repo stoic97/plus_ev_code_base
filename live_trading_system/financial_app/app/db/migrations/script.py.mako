@@ -3,7 +3,7 @@
 Revision ID: ${up_revision}
 Revises: ${down_revision | comma,n}
 Create Date: ${create_date}
-Database: ${database | default("postgres")}
+Database: ${database if database else "postgres"}
 
 """
 from alembic import op
@@ -20,7 +20,7 @@ revision = ${repr(up_revision)}
 down_revision = ${repr(down_revision)}
 branch_labels = ${repr(branch_labels)}
 depends_on = ${repr(depends_on)}
-database = '${database | default("postgres")}'
+database = '${database if database else "postgres"}'
 
 
 def create_hypertable(table_name, time_column_name, chunk_time_interval="1 day", 

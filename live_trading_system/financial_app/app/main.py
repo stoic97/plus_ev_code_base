@@ -2,29 +2,41 @@
 Main application entry point for the Trading Strategies Application.
 Sets up FastAPI app, routers, middleware, and event handlers.
 """
-
+import os
+import sys
 import logging
 import uuid
 from contextlib import asynccontextmanager
 from typing import Callable, Dict, Optional
 
-from fastapi import FastAPI, Request, Response, Depends, status
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-from starlette.middleware.base import BaseHTTPMiddleware
+# Check if this module is being run directly
+if __name__ == "__main__":
+    # Get the parent directory of the current file (project root)
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    parent_dir = os.path.dirname(os.path.dirname(current_dir))
+    
+    # Add the parent directory to Python's path
+    sys.path.insert(0, parent_dir)
 
-from app.api.router import api_router
-from app.core.config import settings
-from app.core.database import MongoDB, PostgresDB, RedisDB, TimescaleDB
-from app.core.error_handling import (
+# Change the imports to use relative imports
+from financial_app.app.api.router import api_router
+from financial_app.app.core.config import settings
+from financial_app.app.core.database import MongoDB, PostgresDB, RedisDB, TimescaleDB
+from financial_app.app.core.error_handling import (
     DatabaseConnectionError,
     OperationalError,
     ValidationError,
     AuthenticationError,
     RateLimitExceededError,
 )
-from app.middleware.auth import AuthMiddleware
-from app.middleware.error_middleware import ErrorHandlingMiddleware
+from financial_app.app.middleware.auth import AuthMiddleware
+from financial_app.app.middleware.error_middleware import ErrorHandlingMiddleware
+
+from fastapi import FastAPI, Request, Response, Depends, status
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from starlette.middleware.base import BaseHTTPMiddleware
+
 
 # Configure logging
 logging.basicConfig(
@@ -36,9 +48,9 @@ logger = logging.getLogger(__name__)
 # Database connection state
 db_state = {
     "postgres": {"connected": False, "required": True, "instance": None},
-    "timescale": {"connected": False, "required": True, "instance": None},
-    "mongodb": {"connected": False, "required": True, "instance": None},
-    "redis": {"connected": False, "required": False, "instance": None},  # Redis is optional
+    "timescale": {"connected": False, "required": False, "instance": None},  # Changed to False
+    "mongodb": {"connected": False, "required": False, "instance": None},    # Changed to False
+    "redis": {"connected": False, "required": False, "instance": None},
 }
 
 
@@ -266,9 +278,15 @@ app = create_application()
 if __name__ == "__main__":
     import uvicorn
     
+    # Get the current file's path and use it for the module path
+    current_file = os.path.abspath(__file__)
+    module_path = os.path.relpath(current_file, os.path.dirname(parent_dir)).replace("\\", ".").replace("/", ".")[:-3]
+    
+    print(f"Starting app with module path: {module_path}")
+    
     # Run the application with uvicorn when script is executed directly
     uvicorn.run(
-        "main:app",
+        f"{module_path}:app",
         host="0.0.0.0",
         port=8000,
         reload=settings.DEBUG,

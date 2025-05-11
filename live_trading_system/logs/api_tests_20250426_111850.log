@@ -1,0 +1,118 @@
+2025-04-26 11:18:50,430 - __main__ - INFO - Starting API access tests
+2025-04-26 11:18:50,430 - __main__ - INFO - Mock mode set to 'always' from command line
+2025-04-26 11:18:56,595 - __main__ - INFO - Service availability status:
+2025-04-26 11:18:56,595 - __main__ - INFO -   API: Not available
+2025-04-26 11:18:56,595 - __main__ - INFO -   Database: Available
+2025-04-26 11:18:56,595 - __main__ - INFO -   Kafka: Not available
+2025-04-26 11:18:56,595 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test reporting initialized. Report directory: D:\e backup\web development\plusEv\plusEV_code_base\plus_ev_code_base\live_trading_system\financial_app\tests\integration\data_layer_e2e\reports\20250426_111848
+2025-04-26 11:19:00,681 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Running in forced mock mode (MOCK_MODE=always)
+2025-04-26 11:19:00,681 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Starting API access tests...
+2025-04-26 11:19:06,772 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Service availability: API=False, Database=True, Kafka=False
+2025-04-26 11:19:06,772 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Test mode: MOCK
+2025-04-26 11:19:06,773 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Authenticating with API...
+2025-04-26 11:19:06,773 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Using mock authentication
+2025-04-26 11:19:06,775 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'api_authentication' completed with status: PASS
+2025-04-26 11:19:06,775 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Running test: Latest Data Endpoint
+2025-04-26 11:19:06,775 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Testing latest market data endpoint...
+2025-04-26 11:19:06,775 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Latest data endpoint test passed for AAPL from NASDAQ (mock)
+2025-04-26 11:19:06,782 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'api_latest_data_AAPL_NASDAQ' completed with status: PASS
+2025-04-26 11:19:06,783 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Latest data endpoint test passed for MSFT from NASDAQ (mock)
+2025-04-26 11:19:06,784 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'api_latest_data_MSFT_NASDAQ' completed with status: PASS
+2025-04-26 11:19:06,788 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Latest data endpoint test passed for BTC/USD from COINBASE (mock)
+2025-04-26 11:19:06,794 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'api_latest_data_BTC/USD_COINBASE' completed with status: PASS
+2025-04-26 11:19:06,795 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Test passed: Latest Data Endpoint
+2025-04-26 11:19:06,796 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Running test: Historical Data Endpoint
+2025-04-26 11:19:06,796 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Testing historical market data endpoint...
+2025-04-26 11:19:06,798 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Historical data endpoint test passed for AAPL from NASDAQ for last_hour (mock)
+2025-04-26 11:19:06,803 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'api_historical_data_AAPL_NASDAQ_last_hour' completed with status: PASS
+2025-04-26 11:19:06,813 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Historical data endpoint test passed for AAPL from NASDAQ for last_day (mock)
+2025-04-26 11:19:06,820 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'api_historical_data_AAPL_NASDAQ_last_day' completed with status: PASS
+2025-04-26 11:19:06,828 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Historical data endpoint test passed for AAPL from NASDAQ for custom_range (mock)
+2025-04-26 11:19:06,834 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'api_historical_data_AAPL_NASDAQ_custom_range' completed with status: PASS
+2025-04-26 11:19:06,837 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Historical data endpoint test passed for MSFT from NASDAQ for last_hour (mock)
+2025-04-26 11:19:06,843 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'api_historical_data_MSFT_NASDAQ_last_hour' completed with status: PASS
+2025-04-26 11:19:06,855 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Historical data endpoint test passed for MSFT from NASDAQ for last_day (mock)
+2025-04-26 11:19:06,855 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'api_historical_data_MSFT_NASDAQ_last_day' completed with status: PASS
+2025-04-26 11:19:06,869 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Historical data endpoint test passed for MSFT from NASDAQ for custom_range (mock)
+2025-04-26 11:19:06,878 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'api_historical_data_MSFT_NASDAQ_custom_range' completed with status: PASS
+2025-04-26 11:19:06,880 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Historical data endpoint test passed for BTC/USD from COINBASE for last_hour (mock)
+2025-04-26 11:19:06,884 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'api_historical_data_BTC/USD_COINBASE_last_hour' completed with status: PASS
+2025-04-26 11:19:06,896 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Historical data endpoint test passed for BTC/USD from COINBASE for last_day (mock)
+2025-04-26 11:19:06,896 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'api_historical_data_BTC/USD_COINBASE_last_day' completed with status: PASS
+2025-04-26 11:19:06,909 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Historical data endpoint test passed for BTC/USD from COINBASE for custom_range (mock)
+2025-04-26 11:19:06,919 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'api_historical_data_BTC/USD_COINBASE_custom_range' completed with status: PASS
+2025-04-26 11:19:06,920 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Test passed: Historical Data Endpoint
+2025-04-26 11:19:06,920 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Running test: Data Consistency
+2025-04-26 11:19:06,920 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Testing data consistency between API and database...
+2025-04-26 11:19:09,138 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Forced mock mode. Using mock data comparison.
+2025-04-26 11:19:09,138 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Using mock data consistency check
+2025-04-26 11:19:09,138 - financial_app.tests.integration.data_layer_e2e.test_api_access - ERROR - Data consistency test failed for AAPL from NASDAQ: only 0.00% match (mock)
+2025-04-26 11:19:09,138 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'api_data_consistency_AAPL_NASDAQ' completed with status: FAIL
+2025-04-26 11:19:09,138 - financial_app.tests.integration.data_layer_e2e.utils.reporting - ERROR - Test 'api_data_consistency_AAPL_NASDAQ' error: Data consistency check failed: only 0.00% match (mock)
+2025-04-26 11:19:09,138 - financial_app.tests.integration.data_layer_e2e.test_api_access - ERROR - Data consistency test failed for MSFT from NASDAQ: only 0.00% match (mock)
+2025-04-26 11:19:09,149 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'api_data_consistency_MSFT_NASDAQ' completed with status: FAIL
+2025-04-26 11:19:09,150 - financial_app.tests.integration.data_layer_e2e.utils.reporting - ERROR - Test 'api_data_consistency_MSFT_NASDAQ' error: Data consistency check failed: only 0.00% match (mock)
+2025-04-26 11:19:09,151 - financial_app.tests.integration.data_layer_e2e.test_api_access - ERROR - Data consistency test failed for BTC/USD from COINBASE: only 0.00% match (mock)
+2025-04-26 11:19:09,158 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'api_data_consistency_BTC/USD_COINBASE' completed with status: FAIL
+2025-04-26 11:19:09,158 - financial_app.tests.integration.data_layer_e2e.utils.reporting - ERROR - Test 'api_data_consistency_BTC/USD_COINBASE' error: Data consistency check failed: only 0.00% match (mock)
+2025-04-26 11:19:09,159 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Retrying Data Consistency (attempt 2/3)...
+2025-04-26 11:19:14,160 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Testing data consistency between API and database...
+2025-04-26 11:19:14,170 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Forced mock mode. Using mock data comparison.
+2025-04-26 11:19:14,171 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Using mock data consistency check
+2025-04-26 11:19:14,172 - financial_app.tests.integration.data_layer_e2e.test_api_access - ERROR - Data consistency test failed for AAPL from NASDAQ: only 0.00% match (mock)
+2025-04-26 11:19:14,182 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'api_data_consistency_AAPL_NASDAQ' completed with status: FAIL
+2025-04-26 11:19:14,183 - financial_app.tests.integration.data_layer_e2e.utils.reporting - ERROR - Test 'api_data_consistency_AAPL_NASDAQ' error: Data consistency check failed: only 0.00% match (mock)
+2025-04-26 11:19:14,183 - financial_app.tests.integration.data_layer_e2e.test_api_access - ERROR - Data consistency test failed for MSFT from NASDAQ: only 0.00% match (mock)
+2025-04-26 11:19:14,188 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'api_data_consistency_MSFT_NASDAQ' completed with status: FAIL
+2025-04-26 11:19:14,192 - financial_app.tests.integration.data_layer_e2e.utils.reporting - ERROR - Test 'api_data_consistency_MSFT_NASDAQ' error: Data consistency check failed: only 0.00% match (mock)
+2025-04-26 11:19:14,193 - financial_app.tests.integration.data_layer_e2e.test_api_access - ERROR - Data consistency test failed for BTC/USD from COINBASE: only 0.00% match (mock)
+2025-04-26 11:19:14,200 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'api_data_consistency_BTC/USD_COINBASE' completed with status: FAIL
+2025-04-26 11:19:14,201 - financial_app.tests.integration.data_layer_e2e.utils.reporting - ERROR - Test 'api_data_consistency_BTC/USD_COINBASE' error: Data consistency check failed: only 0.00% match (mock)
+2025-04-26 11:19:14,201 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Retrying Data Consistency (attempt 3/3)...
+2025-04-26 11:19:19,203 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Testing data consistency between API and database...
+2025-04-26 11:19:19,221 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Forced mock mode. Using mock data comparison.
+2025-04-26 11:19:19,221 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Using mock data consistency check
+2025-04-26 11:19:19,222 - financial_app.tests.integration.data_layer_e2e.test_api_access - ERROR - Data consistency test failed for AAPL from NASDAQ: only 0.00% match (mock)
+2025-04-26 11:19:19,228 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'api_data_consistency_AAPL_NASDAQ' completed with status: FAIL
+2025-04-26 11:19:19,228 - financial_app.tests.integration.data_layer_e2e.utils.reporting - ERROR - Test 'api_data_consistency_AAPL_NASDAQ' error: Data consistency check failed: only 0.00% match (mock)
+2025-04-26 11:19:19,228 - financial_app.tests.integration.data_layer_e2e.test_api_access - ERROR - Data consistency test failed for MSFT from NASDAQ: only 0.00% match (mock)
+2025-04-26 11:19:19,234 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'api_data_consistency_MSFT_NASDAQ' completed with status: FAIL
+2025-04-26 11:19:19,235 - financial_app.tests.integration.data_layer_e2e.utils.reporting - ERROR - Test 'api_data_consistency_MSFT_NASDAQ' error: Data consistency check failed: only 0.00% match (mock)
+2025-04-26 11:19:19,236 - financial_app.tests.integration.data_layer_e2e.test_api_access - ERROR - Data consistency test failed for BTC/USD from COINBASE: only 0.00% match (mock)
+2025-04-26 11:19:19,241 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'api_data_consistency_BTC/USD_COINBASE' completed with status: FAIL
+2025-04-26 11:19:19,242 - financial_app.tests.integration.data_layer_e2e.utils.reporting - ERROR - Test 'api_data_consistency_BTC/USD_COINBASE' error: Data consistency check failed: only 0.00% match (mock)
+2025-04-26 11:19:19,242 - financial_app.tests.integration.data_layer_e2e.test_api_access - ERROR - Test failed after 3 retries: Data Consistency
+2025-04-26 11:19:19,243 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Running test: Error Handling
+2025-04-26 11:19:19,243 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Testing API error handling...
+2025-04-26 11:19:19,245 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Testing error case: invalid_symbol
+2025-04-26 11:19:19,245 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Error handling test passed for invalid_symbol (mock)
+2025-04-26 11:19:19,254 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'api_error_handling_invalid_symbol' completed with status: PASS
+2025-04-26 11:19:19,254 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Testing error case: missing_parameter
+2025-04-26 11:19:19,254 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Error handling test passed for missing_parameter (mock)
+2025-04-26 11:19:19,265 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'api_error_handling_missing_parameter' completed with status: PASS
+2025-04-26 11:19:19,265 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Testing error case: invalid_date_format
+2025-04-26 11:19:19,265 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Error handling test passed for invalid_date_format (mock)
+2025-04-26 11:19:19,275 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'api_error_handling_invalid_date_format' completed with status: PASS
+2025-04-26 11:19:19,275 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Testing error case: future_date
+2025-04-26 11:19:19,275 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Error handling test passed for future_date (mock)
+2025-04-26 11:19:19,289 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'api_error_handling_future_date' completed with status: PASS
+2025-04-26 11:19:19,289 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Testing error case: unauthorized_access
+2025-04-26 11:19:19,289 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Error handling test passed for unauthorized_access (mock)
+2025-04-26 11:19:19,303 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'api_error_handling_unauthorized_access' completed with status: PASS
+2025-04-26 11:19:19,303 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - Test passed: Error Handling
+2025-04-26 11:19:19,303 - financial_app.tests.integration.data_layer_e2e.test_api_access - INFO - API access tests completed. Some tests failed.
+2025-04-26 11:19:19,314 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test report finalized with overall status: FAIL
+2025-04-26 11:19:19,314 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Report available at: D:\e backup\web development\plusEv\plusEV_code_base\plus_ev_code_base\live_trading_system\financial_app\tests\integration\data_layer_e2e\reports\20250426_111848
+2025-04-26 11:19:19,314 - __main__ - INFO - Performance Metrics:
+2025-04-26 11:19:19,314 - __main__ - INFO - api_authentication_ms: avg=120.00ms, p95=120.00ms
+2025-04-26 11:19:19,319 - __main__ - INFO - api_response_time_ms: avg=80.33ms, p95=84.00ms
+2025-04-26 11:19:19,319 - __main__ - INFO - api_latest_data_ms: avg=6.62ms, p95=7.56ms
+2025-04-26 11:19:19,320 - __main__ - INFO - api_historical_response_time_last_hour_ms: avg=112.50ms, p95=112.50ms
+2025-04-26 11:19:19,320 - __main__ - INFO - api_historical_data_last_hour_ms: avg=7.02ms, p95=7.78ms
+2025-04-26 11:19:19,322 - __main__ - INFO - api_historical_response_time_last_day_ms: avg=400.00ms, p95=400.00ms
+2025-04-26 11:19:19,322 - __main__ - INFO - api_historical_data_last_day_ms: avg=13.18ms, p95=15.73ms
+2025-04-26 11:19:19,322 - __main__ - INFO - api_historical_response_time_custom_range_ms: avg=400.00ms, p95=400.00ms
+2025-04-26 11:19:19,323 - __main__ - INFO - api_historical_data_custom_range_ms: avg=20.16ms, p95=23.27ms
+2025-04-26 11:19:19,323 - __main__ - INFO - api_data_fetch_ms: avg=0.00ms, p95=0.00ms
+2025-04-26 11:19:19,324 - __main__ - INFO - db_data_fetch_ms: avg=0.00ms, p95=0.00ms
+2025-04-26 11:19:19,324 - __main__ - INFO - API access tests completed with FAILURE

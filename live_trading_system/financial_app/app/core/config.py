@@ -128,7 +128,7 @@ class DatabaseSettings(BaseSettings):
         description="PostgreSQL password"
     )
     POSTGRES_DB: str = Field(
-        default="trading_strategies", 
+        default="live-trading-system", 
         description="PostgreSQL database name"
     )
     POSTGRES_MIN_CONNECTIONS: int = Field(

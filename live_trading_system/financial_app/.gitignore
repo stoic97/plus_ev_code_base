@@ -11,3 +11,6 @@ echo ".pytest_cache/" >> .gitignore
 echo ".coverage" >> .gitignore
 echo "htmlcov/" >> .gitignore
 echo "live_trading_system/venv/" >> .gitignore
+# Log files
+*.log
+logs/
