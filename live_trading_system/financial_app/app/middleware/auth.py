@@ -108,10 +108,14 @@ class AuthMiddleware(BaseHTTPMiddleware):
         public_paths = [
             "/health",
             "/api/v1/auth/token",
+            "/api/v1/auth/login",      #  ADD THIS LINE!
             "/api/v1/auth/register",
+            "/api/v1/auth/refresh",    #  ADD THIS TOO (for token refresh)
+            "/api/v1/auth/password-reset-request",  #  ADD THIS (for password reset)
             "/docs",
             "/redoc",
             "/openapi.json",
+            "/",  #  ADD ROOT PATH
         ]
         
         for public_path in public_paths:
@@ -136,7 +140,10 @@ class AuthMiddleware(BaseHTTPMiddleware):
             # Some endpoints might be public even under /api/
             public_endpoints = [
                 "/api/v1/auth/token",
+                "/api/v1/auth/login",
                 "/api/v1/auth/register",
+                "/api/v1/auth/refresh",
+                "/api/v1/auth/password-reset-request",
                 "/api/v1/market-data/public",
             ]
             

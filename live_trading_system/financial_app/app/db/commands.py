@@ -72,7 +72,49 @@ class MigrationManager:
         """
         if not ALEMBIC_AVAILABLE:
             return None
+        
+        # Load environment variables from .env file
+        from dotenv import load_dotenv
+        import os
+        
+        # Try multiple locations for .env file
+        env_locations = [
+            self.project_root / '.env',
+            Path('.env')
+        ]
+        
+        env_loaded = False
+        for env_path in env_locations:
+            if env_path.exists():
+                load_dotenv(env_path)
+                env_loaded = True
+                logger.info(f"Loaded environment from {env_path}")
+                break
+        
+        if not env_loaded:
+            logger.warning("No .env file found in any expected location")
+        
+        # Get settings to ensure all environment variables are loaded
+        if self.settings:
+            # Set OS environment variables from settings for Alembic to use
+            os.environ['DB__POSTGRES_USER'] = self.settings.db.POSTGRES_USER
+            os.environ['DB__POSTGRES_PASSWORD'] = self.settings.db.POSTGRES_PASSWORD
+            os.environ['DB__POSTGRES_SERVER'] = self.settings.db.POSTGRES_SERVER
+            os.environ['DB__POSTGRES_PORT'] = str(self.settings.db.POSTGRES_PORT)
+            os.environ['DB__POSTGRES_DB'] = self.settings.db.POSTGRES_DB
+            os.environ['DB__POSTGRES_SSL_MODE'] = self.settings.db.SSL_MODE
             
+            # Also set TimescaleDB variables
+            os.environ['DB__TIMESCALE_USER'] = self.settings.db.TIMESCALE_USER
+            os.environ['DB__TIMESCALE_PASSWORD'] = self.settings.db.TIMESCALE_PASSWORD
+            os.environ['DB__TIMESCALE_SERVER'] = self.settings.db.TIMESCALE_SERVER
+            os.environ['DB__TIMESCALE_PORT'] = str(self.settings.db.TIMESCALE_PORT)
+            os.environ['DB__TIMESCALE_DB'] = self.settings.db.TIMESCALE_DB
+            os.environ['DB__TIMESCALE_SSL_MODE'] = self.settings.db.SSL_MODE
+        
+        # Log for debugging
+        logger.info(f"Database configuration - Server: {os.environ.get('DB__POSTGRES_SERVER')}, DB: {os.environ.get('DB__POSTGRES_DB')}")
+        
         # Path to the alembic.ini file
         alembic_ini = self.project_root / "alembic.ini"
         if not alembic_ini.exists():
@@ -82,8 +124,14 @@ class MigrationManager:
         # Create config object
         config = Config(str(alembic_ini))
         
-        # Set the database argument
-        config.cmd_opts = argparse.Namespace(database=self.database)
+        # Create a mock namespace with the required 'x' attribute
+        cmd_opts = argparse.Namespace()
+        cmd_opts.x = [f"database={self.database}"]  # This is what env.py might be looking for
+        
+        # Set the command options
+        config.cmd_opts = cmd_opts
+        
+        # Also set the database in config attributes for backward compatibility
         config.attributes['database'] = self.database
         
         # Set the script location based on database
@@ -147,19 +195,51 @@ class MigrationManager:
             Current revision identifier
         """
         if ALEMBIC_AVAILABLE and self.config:
-            # Capture output from current command
-            output = StringIO()
-            with contextlib.redirect_stdout(output):
-                command.current(self.config, verbose=True)
+            # Import necessary modules
+            import os
+            from sqlalchemy import create_engine, text  # Add the text import
             
-            # Parse output to extract revision
-            output_str = output.getvalue()
-            for line in output_str.split("\n"):
-                if "current" in line.lower() and "=" in line:
-                    return line.split("=")[1].strip()
+            # Get database URL from config
+            url = os.getenv(f'DB__{self.database.upper()}_URI')
+            if not url:
+                # Fall back to configuration
+                from sqlalchemy import engine_from_config
+                engine = engine_from_config(
+                    self.config.get_section(self.config.config_ini_section),
+                    prefix='sqlalchemy.'
+                )
+            else:
+                # Use direct URL
+                engine = create_engine(url)
             
-            # If no revision found, database might not be initialized
-            return "None"
+            # Check version directly from database
+            try:
+                with engine.connect() as conn:
+                    # First try the specific database version table
+                    try:
+                        result = conn.execute(text(f"SELECT version_num FROM alembic_version_{self.database}"))
+                        version = result.scalar()
+                        if version:
+                            return version
+                    except:
+                        # Table doesn't exist or error occurred
+                        pass
+                    
+                    # Then try the generic version table
+                    try:
+                        result = conn.execute(text("SELECT version_num FROM alembic_version"))
+                        version = result.scalar()
+                        if version:
+                            return version
+                    except:
+                        # Table doesn't exist or error occurred
+                        pass
+                    
+                    # If nothing found, return None
+                    return "None"
+            except Exception as e:
+                logger.error(f"Error checking current version: {e}")
+                return "None"
         else:
             # Return mock data for tests
             return "abc123"
@@ -288,7 +368,6 @@ class MigrationManager:
             }
 
 
-# Define command handler functions - these are the functions imported by your test
 def db_upgrade(args):
     """Handle the upgrade command."""
     try:
@@ -322,7 +401,131 @@ def db_upgrade(args):
         
         # Run upgrade
         manager = MigrationManager(database)
-        manager.upgrade(revision)
+        
+        # Check if this is a schema-creating migration (like the auth schema migration)
+        is_schema_creating = False
+        if revision == "91e93a42b21c" or revision.endswith("create_auth_schema"):
+            is_schema_creating = True
+            logger.info(f"Detected schema-creating migration {revision}")
+            
+            if is_schema_creating:
+                try:
+                    logger.info("Pre-creating schema using autocommit")
+                    # Get direct connection URL from environment
+                    from sqlalchemy import create_engine, text
+                    import os
+                    
+                    # Use the direct connection string instead of Alembic config
+                    db_uri = os.getenv('DB__POSTGRES_URI')
+                    if db_uri:
+                        engine = create_engine(db_uri)
+                        with engine.execution_options(isolation_level="AUTOCOMMIT").connect() as conn:
+                            # Create extension and schema
+                            conn.execute(text('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"'))
+                            conn.execute(text('CREATE SCHEMA IF NOT EXISTS app_auth'))
+                            logger.info("Successfully pre-created extension and schema")
+                    else:
+                        logger.warning("DB__POSTGRES_URI environment variable not found")
+                except Exception as schema_error:
+                    logger.error(f"Error pre-creating schema: {schema_error}")
+        
+        try:
+            # Try to run the upgrade
+            manager.upgrade(revision)
+            logger.info(f"Successfully upgraded {database} database to {revision}")
+            
+            # Verify the upgrade by checking current revision
+            current_rev = manager.current()
+            
+            # For schema-creating migrations, also verify the schema exists
+            if is_schema_creating:
+                logger.info("Verifying schema creation")
+                # Use SQLAlchemy to check schema existence
+                from sqlalchemy import create_engine, text
+                url = manager.config.get_main_option("sqlalchemy.url")
+                engine = create_engine(url)
+                
+                with engine.connect() as conn:
+                    # Check if app_auth schema exists
+                    result = conn.execute(text("""
+                        SELECT schema_name 
+                        FROM information_schema.schemata 
+                        WHERE schema_name = 'app_auth'
+                    """))
+                    
+                    schema_exists = result.rowcount > 0
+                    
+                    if not schema_exists:
+                        logger.error("Migration marked as successful but app_auth schema not created!")
+                        # Try to create schema with autocommit
+                        try:
+                            logger.info("Attempting to create schema after migration")
+                            with engine.execution_options(isolation_level="AUTOCOMMIT").connect() as autocommit_conn:
+                                autocommit_conn.execute(text('CREATE SCHEMA IF NOT EXISTS app_auth'))
+                                logger.info("Successfully created app_auth schema after migration")
+                        except Exception as post_schema_error:
+                            logger.error(f"Error creating schema after migration: {post_schema_error}")
+                            # Continue with verification
+                
+                    # Check if tables exist in schema
+                    table_query = text("""
+                        SELECT table_name 
+                        FROM information_schema.tables 
+                        WHERE table_schema = 'app_auth'
+                    """)
+                    
+                    result = conn.execute(table_query)
+                    tables = [row[0] for row in result]
+                    
+                    if not tables:
+                        logger.error("Migration marked as successful but no tables created in app_auth schema!")
+            
+            if current_rev == "None" or (revision != "head" and current_rev != revision):
+                # If upgrade didn't register in version table, try to manually stamp it
+                logger.warning(f"Upgrade may have succeeded but version not recorded. Current: {current_rev}")
+                try:
+                    manager.stamp(revision)
+                    logger.info(f"Manually stamped {database} database with revision {revision}")
+                except Exception as stamp_error:
+                    logger.error(f"Error stamping database: {stamp_error}")
+            
+        except Exception as upgrade_error:
+            logger.error(f"Error during upgrade: {upgrade_error}")
+            
+            # If this is a schema-creating migration and it failed, the schema may still exist
+            # but the tables might not have been created
+            if is_schema_creating:
+                logger.warning("Checking if schema exists despite migration error")
+                from sqlalchemy import create_engine, text
+                url = manager.config.get_main_option("sqlalchemy.url")
+                engine = create_engine(url)
+                
+                with engine.connect() as conn:
+                    # Check if app_auth schema exists
+                    result = conn.execute(text("""
+                        SELECT schema_name 
+                        FROM information_schema.schemata 
+                        WHERE schema_name = 'app_auth'
+                    """))
+                    
+                    schema_exists = result.rowcount > 0
+                    logger.info(f"Schema exists: {schema_exists}")
+                    
+                    # Don't stamp the migration as complete if it failed and schema doesn't exist
+                    if not schema_exists:
+                        logger.error("Schema does not exist - not marking migration as complete")
+                        raise upgrade_error
+            
+            # Try to stamp the database anyway if the error might be just with recording the version
+            try:
+                manager.stamp(revision)
+                logger.info(f"Despite upgrade error, stamped {database} database with revision {revision}")
+            except Exception as stamp_error:
+                logger.error(f"Error stamping database after upgrade error: {stamp_error}")
+            
+            # Re-raise the original error
+            raise upgrade_error
+            
         print(f"Successfully upgraded {database} database to {revision}")
     except Exception as e:
         print(f"Error during upgrade: {str(e)}")

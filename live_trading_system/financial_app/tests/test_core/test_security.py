@@ -8,6 +8,7 @@ import datetime
 import ipaddress
 import json
 import os
+import sys
 import pytest
 from datetime import timedelta
 from unittest.mock import MagicMock, patch
@@ -17,9 +18,13 @@ from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel
 from jose import jwt, JWTError
 
-from app.core.config import Settings
-from app.core.database import PostgresDB
-from app.core.security import (
+# Add the project root to the path if running the test directly
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+
+# Fixed imports to use the correct module path
+from financial_app.app.core.config import Settings
+from financial_app.app.core.database import PostgresDB
+from financial_app.app.core.security import (
     authenticate_user, create_access_token, create_refresh_token,
     get_password_hash, get_user, has_role, is_allowed_ip,
     log_auth_event, verify_password, User, Roles,
@@ -51,12 +56,13 @@ def mock_db(mock_db_session):
 def mock_settings():
     """Create mock settings for testing."""
     settings = MagicMock()
-    # Create the nested security attributew
+    # Create the nested security attribute
     settings.security = MagicMock()
     settings.security.SECRET_KEY = "test_secret_key"
     settings.security.ALGORITHM = "HS256"
     settings.security.ACCESS_TOKEN_EXPIRE_MINUTES = 30
-    # Add other required attributes
+    settings.security.REFRESH_TOKEN_EXPIRE_DAYS = 7
+    settings.security.ALLOWED_IP_RANGES = ["192.168.0.0/16", "10.0.0.0/8"]
     return settings
 
 
@@ -144,7 +150,7 @@ def test_create_access_token():
     test_settings.security.ALGORITHM = "HS256"
     test_settings.security.ACCESS_TOKEN_EXPIRE_MINUTES = 30
     
-    with patch("app.core.security.get_settings", return_value=test_settings):
+    with patch("financial_app.app.core.security.get_settings", return_value=test_settings):
         data = {"sub": "testuser", "roles": ["admin"]}
         
         # Test with custom expiry
@@ -167,14 +173,7 @@ def test_create_access_token():
 
 def test_create_refresh_token(mock_settings):
     """Test JWT refresh token creation."""
-    # Create fixed settings for consistent token verification
-    test_settings = MagicMock()
-    test_settings.security = MagicMock()
-    test_settings.security.SECRET_KEY = "fixed_test_secret_key"
-    test_settings.security.ALGORITHM = "HS256"
-    test_settings.security.ACCESS_TOKEN_EXPIRE_MINUTES = 30
-
-    with patch("app.core.security.get_settings", return_value=mock_settings):
+    with patch("financial_app.app.core.security.get_settings", return_value=mock_settings):
         data = {"sub": "testuser", "roles": ["admin"]}
         
         token = create_refresh_token(data)
@@ -278,8 +277,8 @@ async def test_get_current_user_valid_token(mock_db, mock_db_session, mock_reque
     token = "fake.jwt.token"
     
     # Patch JWT decode to avoid actual cryptographic verification
-    with patch("app.core.security.get_db", return_value=mock_db):
-        with patch("app.core.security.jwt.decode") as mock_decode:
+    with patch("financial_app.app.core.security.get_db", return_value=mock_db):
+        with patch("financial_app.app.core.security.jwt.decode") as mock_decode:
 
             # Set up mock decode to return expected payload
             mock_decode.return_value = {
@@ -289,9 +288,9 @@ async def test_get_current_user_valid_token(mock_db, mock_db_session, mock_reque
             }
             
             # Patch is_allowed_ip to return True
-            with patch("app.core.security.is_allowed_ip", return_value=True):
+            with patch("financial_app.app.core.security.is_allowed_ip", return_value=True):
                 # Patch log_auth_event to do nothing
-                with patch("app.core.security.log_auth_event"):
+                with patch("financial_app.app.core.security.log_auth_event"):
                     user = await get_current_user(mock_request, mock_db, token)
                     
                     # Verify user was returned correctly
@@ -303,16 +302,16 @@ async def test_get_current_user_valid_token(mock_db, mock_db_session, mock_reque
 @pytest.mark.asyncio
 async def test_get_current_user_invalid_token(mock_db, mock_request, mock_settings):
     """Test getting current user with invalid token."""
-    # Patch JWT decode to raise PyJWTError (not JWTError)
-    with patch("app.core.security.get_db", return_value=mock_db):
-        with patch("app.core.security.jwt.decode") as mock_decode:
+    # Patch JWT decode to raise JWTError
+    with patch("financial_app.app.core.security.get_db", return_value=mock_db):
+        with patch("financial_app.app.core.security.jwt.decode") as mock_decode:
             # Fixed test using the JWTError from jose
-            mock_decode.side_effect = JWTError("Invalid token")  # or jose.JWTError if imported separately
+            mock_decode.side_effect = JWTError("Invalid token")
             
             # Patch is_allowed_ip to return True
-            with patch("app.core.security.is_allowed_ip", return_value=True):
+            with patch("financial_app.app.core.security.is_allowed_ip", return_value=True):
                 # Patch log_auth_event to do nothing
-                with patch("app.core.security.log_auth_event"):
+                with patch("financial_app.app.core.security.log_auth_event"):
                     with pytest.raises(HTTPException) as exc_info:
                         await get_current_user(mock_request, mock_db, "invalid_token")
                     
@@ -328,9 +327,9 @@ async def test_get_current_user_ip_restricted(mock_db, mock_request, mock_settin
     mock_request.client.host = "1.2.3.4"
     
     # Patch is_allowed_ip to return False
-    with patch("app.core.security.is_allowed_ip", return_value=False):
+    with patch("financial_app.app.core.security.is_allowed_ip", return_value=False):
         # Patch log_auth_event to do nothing
-        with patch("app.core.security.log_auth_event"):
+        with patch("financial_app.app.core.security.log_auth_event"):
             with pytest.raises(HTTPException) as exc_info:
                 await get_current_user(mock_request, mock_db, "valid_token")
             
@@ -378,7 +377,7 @@ async def test_has_role_authorized(test_user, mock_request):
     role_checker = has_role(["trader"])
     
     # Patch log_auth_event to do nothing
-    with patch("app.core.security.log_auth_event"):
+    with patch("financial_app.app.core.security.log_auth_event"):
         user = await role_checker(mock_request, test_user)
         
         # Verify user was returned unchanged
@@ -392,8 +391,8 @@ async def test_has_role_unauthorized(test_user, mock_request):
     role_checker = has_role(["admin"])
     
     # Patch log_auth_event to do nothing and PostgresDB constructor
-    with patch("app.core.security.log_auth_event"):
-        with patch("app.core.security.PostgresDB"):
+    with patch("financial_app.app.core.security.log_auth_event"):
+        with patch("financial_app.app.core.security.PostgresDB"):
             with pytest.raises(HTTPException) as exc_info:
                 await role_checker(mock_request, test_user)
             
@@ -408,7 +407,7 @@ async def test_has_role_unauthorized(test_user, mock_request):
 
 def test_is_allowed_ip_allowed(mock_settings):
     """Test IP restriction with allowed IP."""
-    with patch("app.core.security.get_settings", return_value=mock_settings):
+    with patch("financial_app.app.core.security.get_settings", return_value=mock_settings):
         # Test IP in first allowed range
         assert is_allowed_ip("192.168.1.100")
         
@@ -418,20 +417,22 @@ def test_is_allowed_ip_allowed(mock_settings):
 
 def test_is_allowed_ip_restricted():
     """Test IP restriction with restricted IP."""
-    with patch("app.core.security.settings") as mock_settings:
-        # Create a properly structured settings mock
-        mock_settings.security.ALLOWED_IP_RANGES = ["192.168.0.0/16", "10.0.0.0/8"]
-        
+    mock_settings = MagicMock()
+    mock_settings.security = MagicMock()
+    mock_settings.security.ALLOWED_IP_RANGES = ["192.168.0.0/16", "10.0.0.0/8"]
+    
+    with patch("financial_app.app.core.security.get_settings", return_value=mock_settings):
         # Test IP outside allowed ranges
         assert not is_allowed_ip("8.8.8.8")
 
 
 def test_is_allowed_ip_invalid_ip():
     """Test IP restriction with invalid IP format."""
-    with patch("app.core.security.settings") as mock_settings:
-        # Create a properly structured settings mock
-        mock_settings.security.ALLOWED_IP_RANGES = ["192.168.0.0/16"]
-        
+    mock_settings = MagicMock()
+    mock_settings.security = MagicMock()
+    mock_settings.security.ALLOWED_IP_RANGES = ["192.168.0.0/16"]
+    
+    with patch("financial_app.app.core.security.get_settings", return_value=mock_settings):
         # Test invalid IP format
         assert not is_allowed_ip("invalid-ip")
 
@@ -445,7 +446,7 @@ def test_is_allowed_ip_no_restrictions():
     # Remove ALLOWED_IP_RANGES attribute
     del settings.security.ALLOWED_IP_RANGES
     
-    with patch("app.core.security.get_settings", return_value=settings):
+    with patch("financial_app.app.core.security.get_settings", return_value=settings):
         # All IPs should be allowed
         assert is_allowed_ip("8.8.8.8")
 
@@ -455,7 +456,7 @@ def test_is_allowed_ip_empty_restrictions(mock_settings):
     # Set empty allowed IP ranges
     mock_settings.security.ALLOWED_IP_RANGES = []
     
-    with patch("app.core.security.get_settings", return_value=mock_settings):
+    with patch("financial_app.app.core.security.get_settings", return_value=mock_settings):
         # All IPs should be allowed when empty list
         assert is_allowed_ip("8.8.8.8")
 
@@ -494,7 +495,7 @@ def test_log_auth_event_exception(mock_db, mock_db_session):
     mock_db_session.execute.side_effect = Exception("Database error")
     
     # Patch logger to capture error
-    with patch("app.core.security.logger.error") as mock_error:
+    with patch("financial_app.app.core.security.logger.error") as mock_error:
         log_auth_event(
             mock_db,
             "login_error",
@@ -566,7 +567,7 @@ def test_create_user_exception(mock_db, mock_db_session):
     ]
     
     # Patch logger to capture error
-    with patch("app.core.security.logger.error") as mock_error:
+    with patch("financial_app.app.core.security.logger.error") as mock_error:
         result = create_user(
             mock_db,
             "erroruser",
@@ -662,7 +663,7 @@ def test_enable_user_success(mock_db, mock_db_session):
 def test_change_password_success(mock_db, mock_db_session, test_user_data):
     """Test changing password."""
     # Set up mocks for authenticate_user
-    with patch("app.core.security.authenticate_user") as mock_auth:
+    with patch("financial_app.app.core.security.authenticate_user") as mock_auth:
         mock_auth.return_value = User(
             username=test_user_data["username"],
             email=test_user_data["email"],
@@ -687,7 +688,7 @@ def test_change_password_success(mock_db, mock_db_session, test_user_data):
 def test_change_password_authentication_failed(mock_db):
     """Test changing password with failed authentication."""
     # Mock authenticate_user to return None (authentication failed)
-    with patch("app.core.security.authenticate_user", return_value=None):
+    with patch("financial_app.app.core.security.authenticate_user", return_value=None):
         result = change_password(
             mock_db,
             "testuser",
@@ -771,3 +772,8 @@ def test_admin_reset_password_user_not_found(mock_db, mock_db_session):
     
     # Verify password reset failed
     assert result is False
+
+
+# Run tests when file is executed directly
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])

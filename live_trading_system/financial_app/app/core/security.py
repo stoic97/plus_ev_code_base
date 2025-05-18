@@ -24,9 +24,10 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel
+from sqlalchemy.sql import text
 
-from app.core.config import get_settings
-from app.core.database import PostgresDB, get_db
+from .config import get_settings
+from .database import PostgresDB, get_db
 
 
 # Create API router for authentication endpoints
@@ -34,6 +35,7 @@ router = APIRouter(tags=["authentication"], prefix="/auth")
 
 # Set up logging
 logger = logging.getLogger(__name__)
+
 
 # Initialize settings
 settings = get_settings()
@@ -99,15 +101,17 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """
     Verify a password against its hash.
-    
-    Args:
-        plain_password: Plain text password
-        hashed_password: Hashed password from database
-        
-    Returns:
-        True if password matches hash, False otherwise
     """
-    return pwd_context.verify(plain_password, hashed_password)
+    print(f"VERIFYING PASSWORD (hash length: {len(hashed_password)})")  # Add direct console output
+    
+    try:
+        result = pwd_context.verify(plain_password, hashed_password)
+        print(f"PASSWORD VERIFICATION RESULT: {result}")  # Add direct console output
+        return result
+    except Exception as e:
+        print(f"PASSWORD VERIFICATION ERROR: {str(e)}")  # Add direct console output
+        logger.error(f"Error in password verification: {str(e)}")
+        return False
 
 
 def get_password_hash(password: str) -> str:
@@ -184,57 +188,58 @@ def create_refresh_token(data: dict) -> str:
 def get_user(db: PostgresDB, username: str) -> Optional[Dict[str, Any]]:
     """
     Retrieve user from database by username.
-    
-    Args:
-        db: Database connection
-        username: Username to lookup
-        
-    Returns:
-        User dict if found, None otherwise
     """
+    print(f"GETTING USER: {username}")  # Add direct console output
+    
     with db.session() as session:
-        user_data = session.execute(
-            """
-            SELECT username, email, full_name, hashed_password, disabled, roles 
-            FROM users WHERE username = :username
-            """,
-            {"username": username}
-        ).fetchone()
-        
-        if user_data:
-            # Convert roles from database format (potentially comma-delimited string)
-            # to a list of strings
-            roles = user_data.roles.split(",") if user_data.roles else []
+        try:
+            user_data = session.execute(
+                text("""
+                SELECT username, email, full_name, hashed_password, disabled, roles 
+                FROM app_auth.users WHERE username = :username
+                """),
+                {"username": username}
+            ).fetchone()
             
-            # Create user dict with all needed fields
-            user_dict = {
-                "username": user_data.username,
-                "email": user_data.email,
-                "full_name": user_data.full_name,
-                "disabled": user_data.disabled,
-                "hashed_password": user_data.hashed_password,
-                "roles": roles
-            }
-            return user_dict
+            print(f"USER FOUND: {user_data is not None}")  # Add direct console output
+            
+            if user_data:
+                # Convert roles from database format (potentially comma-delimited string)
+                # to a list of strings
+                roles = user_data.roles.split(",") if user_data.roles else []
+                
+                # Create user dict with all needed fields
+                user_dict = {
+                    "username": user_data.username,
+                    "email": user_data.email,
+                    "full_name": user_data.full_name,
+                    "disabled": user_data.disabled,
+                    "hashed_password": user_data.hashed_password,
+                    "roles": roles
+                }
+                return user_dict
+        except Exception as e:
+            print(f"ERROR GETTING USER: {str(e)}")  # Add error logging
+            logger.error(f"Error retrieving user {username}: {str(e)}")
     return None
 
 
 def authenticate_user(db: PostgresDB, username: str, password: str) -> Optional[User]:
     """
     Authenticate a user by username and password.
-    
-    Args:
-        db: Database connection
-        username: Username to authenticate
-        password: Password to verify
-        
-    Returns:
-        User object if authentication successful, None otherwise
     """
+    print(f"AUTHENTICATION ATTEMPT: {username}")  # Add direct console output
+    
     user = get_user(db, username)
     if not user:
+        print(f"USER NOT FOUND: {username}")  # Add direct console output
         return None
-    if not verify_password(password, user["hashed_password"]):
+        
+    print(f"CHECKING PASSWORD FOR: {username}")  # Add direct console output
+    password_valid = verify_password(password, user["hashed_password"])
+    print(f"PASSWORD VALID: {password_valid}")  # Add direct console output
+    
+    if not password_valid:
         return None
     
     # Remove hashed_password before returning user object
@@ -413,31 +418,45 @@ def is_allowed_ip(client_ip: str) -> bool:
     Returns:
         True if IP is allowed, False otherwise
     """
-    # If no IP restrictions configured, allow all
-    if not hasattr(settings.security, 'ALLOWED_IP_RANGES'):
-        return True
-        
-    allowed_ranges = settings.security.ALLOWED_IP_RANGES
-    
-    # If no ranges defined, allow all
-    if not allowed_ranges:
-        return True
-    
+    # Get settings
     try:
-        client_ip_obj = ipaddress.ip_address(client_ip)
+        settings = get_settings()
+        # Check if IP restrictions are configured
+        if not hasattr(settings.security, 'ALLOWED_IP_RANGES'):
+            return True
+            
+        allowed_ranges = getattr(settings.security, 'ALLOWED_IP_RANGES', [])
+        
+        # If no ranges defined, allow all
+        if not allowed_ranges:
+            return True
+        
+        # Try to parse the client IP
+        try:
+            client_ip_obj = ipaddress.ip_address(client_ip)
+        except ValueError:
+            # Invalid IP address format - deny access
+            logger.error(f"Invalid IP address format: {client_ip}")
+            return False
         
         # Check each allowed range
         for ip_range in allowed_ranges:
-            network = ipaddress.ip_network(ip_range, strict=False)
-            if client_ip_obj in network:
-                return True
+            try:
+                network = ipaddress.ip_network(ip_range, strict=False)
+                if client_ip_obj in network:
+                    return True
+            except ValueError:
+                # Invalid network range - skip and continue
+                logger.warning(f"Invalid IP range in configuration: {ip_range}")
+                continue
                 
         # IP not in any allowed range
         return False
-    except ValueError:
-        # Invalid IP address format
-        logger.error(f"Invalid IP address format: {client_ip}")
-        return False
+        
+    except Exception as e:
+        # If settings not available or other error, allow by default
+        logger.error(f"Error checking IP restrictions: {e}")
+        return True
 
 
 #################################################
@@ -499,17 +518,6 @@ def create_user(
 ) -> bool:
     """
     Create a new user in the database.
-    
-    Args:
-        db: Database connection
-        username: Username for new user
-        email: Email address for new user
-        password: Plain text password (will be hashed)
-        full_name: Optional full name
-        roles: List of role strings
-        
-    Returns:
-        True if user created successfully, False otherwise
     """
     hashed_password = get_password_hash(password)
     
@@ -517,7 +525,7 @@ def create_user(
         with db.session() as session:
             # Check if user already exists
             existing = session.execute(
-                "SELECT 1 FROM users WHERE username = :username",
+                text("SELECT 1 FROM app_auth.users WHERE username = :username"),  # <-- Added text() function
                 {"username": username}
             ).fetchone()
             
@@ -527,10 +535,10 @@ def create_user(
                 
             # Insert new user
             session.execute(
-                """
-                INSERT INTO users (username, email, full_name, hashed_password, roles) 
+                text("""
+                INSERT INTO app_auth.users (username, email, full_name, hashed_password, roles) 
                 VALUES (:username, :email, :full_name, :hashed_password, :roles)
-                """,
+                """),  # <-- Added text() function
                 {
                     "username": username,
                     "email": email,

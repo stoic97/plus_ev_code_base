@@ -5,9 +5,17 @@ Revises:
 Create Date: 2025-04-28 15:57:04.218998+00:00
 Database: postgres
 
+This migration creates the auth schema and related tables.
+Schema creation will be handled specially by the env.py file.
 """
+import logging
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy import text
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("alembic.migration")
 
 # revision identifiers, used by Alembic.
 revision = '91e93a42b21c'
@@ -18,126 +26,174 @@ database = 'postgres'
 
 
 def upgrade():
-    # Create uuid-ossp extension for UUID generation if not exists
-    op.execute('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"')
+    # Get the connection
+    connection = op.get_bind()
     
-    # Create schema for authentication
-    op.execute('CREATE SCHEMA IF NOT EXISTS auth')
+    # Use autocommit for schema and extension creation
+    logger.info("Creating extension and schema with autocommit")
+    autocommit_conn = connection.execution_options(isolation_level="AUTOCOMMIT")
     
-    # Create roles table
-    op.create_table('roles',
-        sa.Column('id', sa.Integer(), primary_key=True),
-        sa.Column('name', sa.String(50), nullable=False, unique=True, index=True),
-        sa.Column('description', sa.String(255)),
-        sa.Column('permissions', sa.JSON(), nullable=False, server_default='{}'),
-        schema='auth'
-    )
+    try:
+        # Create uuid-ossp extension
+        autocommit_conn.execute(text('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"'))
+        logger.info("Extension created successfully")
+        
+        # Create app_auth schema
+        autocommit_conn.execute(text('CREATE SCHEMA IF NOT EXISTS app_auth'))
+        logger.info("Schema created successfully")
+    except Exception as e:
+        logger.error(f"Error creating extension or schema: {e}")
+        raise
     
-    # Create users table
-    op.create_table('users',
-        sa.Column('id', sa.UUID(), primary_key=True, server_default=sa.text("uuid_generate_v4()")),
-        sa.Column('email', sa.String(255), nullable=False, unique=True, index=True),
-        sa.Column('username', sa.String(50), nullable=False, unique=True, index=True),
-        sa.Column('hashed_password', sa.String(255), nullable=False),
-        sa.Column('full_name', sa.String(255)),
-        sa.Column('is_active', sa.Boolean(), nullable=False, server_default=sa.text("true")),
-        sa.Column('is_superuser', sa.Boolean(), nullable=False, server_default=sa.text("false")),
-        sa.Column('created_at', sa.DateTime(), nullable=False, server_default=sa.text("now()")),
-        sa.Column('updated_at', sa.DateTime(), nullable=False, server_default=sa.text("now()")),
-        sa.Column('last_login_at', sa.DateTime()),
-        sa.Column('password_changed_at', sa.DateTime(), server_default=sa.text("now()")),
-        sa.Column('failed_login_attempts', sa.Integer(), nullable=False, server_default=sa.text("0")),
-        sa.Column('last_failed_login_at', sa.DateTime()),
-        sa.Column('lockout_until', sa.DateTime()),
-        sa.Column('trading_limits', sa.JSON(), server_default='{}'),
-        sa.Column('algorithm_access', sa.JSON(), server_default='{}'),
-        sa.Column('environment_access', sa.JSON(), server_default='{}'),
-        sa.Column('has_kill_switch_access', sa.Boolean(), nullable=False, server_default=sa.text("false")),
-        sa.Column('emergency_contact', sa.Boolean(), nullable=False, server_default=sa.text("false")),
-        schema='auth'
-    )
-    
-    # Create user_roles association table for many-to-many relationship
-    op.create_table('user_roles',
-        sa.Column('user_id', sa.UUID(), sa.ForeignKey('auth.users.id'), primary_key=True),
-        sa.Column('role_id', sa.Integer(), sa.ForeignKey('auth.roles.id'), primary_key=True),
-        schema='auth'
-    )
-    
-    # Create user_sessions table
-    op.create_table('user_sessions',
-        sa.Column('id', sa.UUID(), primary_key=True, server_default=sa.text("uuid_generate_v4()")),
-        sa.Column('user_id', sa.UUID(), sa.ForeignKey('auth.users.id'), nullable=False),
-        sa.Column('token_id', sa.String(255), nullable=False, unique=True),
-        sa.Column('ip_address', sa.String(45)),
-        sa.Column('user_agent', sa.String(255)),
-        sa.Column('created_at', sa.DateTime(), nullable=False, server_default=sa.text("now()")),
-        sa.Column('expires_at', sa.DateTime(), nullable=False),
-        sa.Column('revoked_at', sa.DateTime()),
-        sa.Column('is_revoked', sa.Boolean(), nullable=False, server_default=sa.text("false")),
-        sa.Column('environment', sa.String(50), server_default="prod"),
-        sa.Column('is_algorithmic_session', sa.Boolean(), server_default=sa.text("false")),
-        schema='auth'
-    )
-    
-    # Create api_keys table
-    op.create_table('api_keys',
-        sa.Column('id', sa.UUID(), primary_key=True, server_default=sa.text("uuid_generate_v4()")),
-        sa.Column('user_id', sa.UUID(), sa.ForeignKey('auth.users.id'), nullable=False),
-        sa.Column('name', sa.String(100), nullable=False),
-        sa.Column('key_prefix', sa.String(10), nullable=False),
-        sa.Column('key_hash', sa.String(255), nullable=False),
-        sa.Column('created_at', sa.DateTime(), nullable=False, server_default=sa.text("now()")),
-        sa.Column('expires_at', sa.DateTime()),
-        sa.Column('revoked_at', sa.DateTime()),
-        sa.Column('is_revoked', sa.Boolean(), nullable=False, server_default=sa.text("false")),
-        sa.Column('permissions', sa.JSON(), server_default='{}'),
-        sa.Column('environment', sa.String(50), server_default="prod"),
-        sa.Column('rate_limit', sa.Integer(), server_default=sa.text("100")),
-        sa.Column('last_used_at', sa.DateTime()),
-        sa.Column('use_count', sa.Integer(), server_default=sa.text("0")),
-        schema='auth'
-    )
-    
-    # Create password_resets table
-    op.create_table('password_resets',
-        sa.Column('id', sa.UUID(), primary_key=True, server_default=sa.text("uuid_generate_v4()")),
-        sa.Column('user_id', sa.UUID(), sa.ForeignKey('auth.users.id'), nullable=False),
-        sa.Column('token_hash', sa.String(255), nullable=False),
-        sa.Column('created_at', sa.DateTime(), nullable=False, server_default=sa.text("now()")),
-        sa.Column('expires_at', sa.DateTime(), nullable=False),
-        sa.Column('used_at', sa.DateTime()),
-        sa.Column('is_used', sa.Boolean(), nullable=False, server_default=sa.text("false")),
-        sa.Column('ip_address', sa.String(45)),
-        sa.Column('user_agent', sa.String(255)),
-        schema='auth'
-    )
-    
-    # Create audit_logs table
-    op.create_table('audit_logs',
-        sa.Column('id', sa.UUID(), primary_key=True, server_default=sa.text("uuid_generate_v4()")),
-        sa.Column('user_id', sa.UUID(), sa.ForeignKey('auth.users.id')),
-        sa.Column('action', sa.String(100), nullable=False),
-        sa.Column('timestamp', sa.DateTime(), nullable=False, server_default=sa.text("now()")),
-        sa.Column('ip_address', sa.String(45)),
-        sa.Column('user_agent', sa.String(255)),
-        sa.Column('target_type', sa.String(50)),
-        sa.Column('target_id', sa.String(255)),
-        sa.Column('environment', sa.String(50)),
-        sa.Column('details', sa.JSON()),
-        schema='auth'
-    )
+    # Now create tables using explicit SQL to avoid any issues with Alembic's table creation
+    try:
+        logger.info("Creating tables")
+        
+        # Create roles table
+        logger.info("Creating roles table")
+        connection.execute(text("""
+            CREATE TABLE app_auth.roles (
+                id INTEGER PRIMARY KEY,
+                name VARCHAR(50) NOT NULL UNIQUE,
+                description VARCHAR(255),
+                permissions JSON NOT NULL DEFAULT '{}'
+            )
+        """))
+        
+        # Create users table
+        logger.info("Creating users table")
+        connection.execute(text("""
+            CREATE TABLE app_auth.users (
+                id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+                email VARCHAR(255) NOT NULL UNIQUE,
+                username VARCHAR(50) NOT NULL UNIQUE,
+                hashed_password VARCHAR(255) NOT NULL,
+                full_name VARCHAR(255),
+                is_active BOOLEAN NOT NULL DEFAULT true,
+                is_superuser BOOLEAN NOT NULL DEFAULT false,
+                created_at TIMESTAMP NOT NULL DEFAULT now(),
+                updated_at TIMESTAMP NOT NULL DEFAULT now(),
+                last_login_at TIMESTAMP,
+                password_changed_at TIMESTAMP DEFAULT now(),
+                failed_login_attempts INTEGER NOT NULL DEFAULT 0,
+                last_failed_login_at TIMESTAMP,
+                lockout_until TIMESTAMP,
+                trading_limits JSON DEFAULT '{}',
+                algorithm_access JSON DEFAULT '{}',
+                environment_access JSON DEFAULT '{}',
+                has_kill_switch_access BOOLEAN NOT NULL DEFAULT false,
+                emergency_contact BOOLEAN NOT NULL DEFAULT false
+            )
+        """))
+        
+        # Create user_roles association table
+        logger.info("Creating user_roles table")
+        connection.execute(text("""
+            CREATE TABLE app_auth.user_roles (
+                user_id UUID REFERENCES app_auth.users(id),
+                role_id INTEGER REFERENCES app_auth.roles(id),
+                PRIMARY KEY (user_id, role_id)
+            )
+        """))
+        
+        # Create user_sessions table
+        logger.info("Creating user_sessions table")
+        connection.execute(text("""
+            CREATE TABLE app_auth.user_sessions (
+                id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+                user_id UUID REFERENCES app_auth.users(id) NOT NULL,
+                token_id VARCHAR(255) NOT NULL UNIQUE,
+                ip_address VARCHAR(45),
+                user_agent VARCHAR(255),
+                created_at TIMESTAMP NOT NULL DEFAULT now(),
+                expires_at TIMESTAMP NOT NULL,
+                revoked_at TIMESTAMP,
+                is_revoked BOOLEAN NOT NULL DEFAULT false,
+                environment VARCHAR(50) DEFAULT 'prod',
+                is_algorithmic_session BOOLEAN DEFAULT false
+            )
+        """))
+        
+        # Create api_keys table
+        logger.info("Creating api_keys table")
+        connection.execute(text("""
+            CREATE TABLE app_auth.api_keys (
+                id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+                user_id UUID REFERENCES app_auth.users(id) NOT NULL,
+                name VARCHAR(100) NOT NULL,
+                key_prefix VARCHAR(10) NOT NULL,
+                key_hash VARCHAR(255) NOT NULL,
+                created_at TIMESTAMP NOT NULL DEFAULT now(),
+                expires_at TIMESTAMP,
+                revoked_at TIMESTAMP,
+                is_revoked BOOLEAN NOT NULL DEFAULT false,
+                permissions JSON DEFAULT '{}',
+                environment VARCHAR(50) DEFAULT 'prod',
+                rate_limit INTEGER DEFAULT 100,
+                last_used_at TIMESTAMP,
+                use_count INTEGER DEFAULT 0
+            )
+        """))
+        
+        # Create password_resets table
+        logger.info("Creating password_resets table")
+        connection.execute(text("""
+            CREATE TABLE app_auth.password_resets (
+                id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+                user_id UUID REFERENCES app_auth.users(id) NOT NULL,
+                token_hash VARCHAR(255) NOT NULL,
+                created_at TIMESTAMP NOT NULL DEFAULT now(),
+                expires_at TIMESTAMP NOT NULL,
+                used_at TIMESTAMP,
+                is_used BOOLEAN NOT NULL DEFAULT false,
+                ip_address VARCHAR(45),
+                user_agent VARCHAR(255)
+            )
+        """))
+        
+        # Create audit_logs table
+        logger.info("Creating audit_logs table")
+        connection.execute(text("""
+            CREATE TABLE app_auth.audit_logs (
+                id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+                user_id UUID REFERENCES app_auth.users(id),
+                action VARCHAR(100) NOT NULL,
+                timestamp TIMESTAMP NOT NULL DEFAULT now(),
+                ip_address VARCHAR(45),
+                user_agent VARCHAR(255),
+                target_type VARCHAR(50),
+                target_id VARCHAR(255),
+                environment VARCHAR(50),
+                details JSON
+            )
+        """))
+        
+        logger.info("All tables created successfully")
+        
+    except Exception as e:
+        logger.error(f"Error creating tables: {e}")
+        raise
 
 
 def downgrade():
-    # Drop all tables in reverse order to respect foreign key constraints
-    op.drop_table('audit_logs', schema='auth')
-    op.drop_table('password_resets', schema='auth')
-    op.drop_table('api_keys', schema='auth')
-    op.drop_table('user_sessions', schema='auth')
-    op.drop_table('user_roles', schema='auth')
-    op.drop_table('users', schema='auth')
-    op.drop_table('roles', schema='auth')
+    """Drop all tables and schema in reverse order."""
+    connection = op.get_bind()
     
-    # Drop schema
-    op.execute('DROP SCHEMA IF EXISTS auth CASCADE')
+    # Drop all tables first
+    logger.info("Dropping tables")
+    for table in ['audit_logs', 'password_resets', 'api_keys', 'user_sessions', 
+                  'user_roles', 'users', 'roles']:
+        try:
+            connection.execute(text(f"DROP TABLE IF EXISTS app_auth.{table} CASCADE"))
+            logger.info(f"Dropped table {table}")
+        except Exception as e:
+            logger.error(f"Error dropping table {table}: {e}")
+    
+    # Drop schema with autocommit
+    logger.info("Dropping schema")
+    try:
+        autocommit_conn = connection.execution_options(isolation_level="AUTOCOMMIT")
+        autocommit_conn.execute(text("DROP SCHEMA IF EXISTS app_auth CASCADE"))
+        logger.info("Dropped schema app_auth")
+    except Exception as e:
+        logger.error(f"Error dropping schema: {e}")

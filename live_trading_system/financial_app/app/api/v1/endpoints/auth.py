@@ -9,9 +9,9 @@ import re
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
 
-from app.core.config import settings
-from app.core.database import PostgresDB, get_db
-from app.core.security import (
+from ....core.config import settings
+from ....core.database import PostgresDB, get_db
+from ....core.security import (
     User,
     Token,
     authenticate_user,
@@ -26,7 +26,7 @@ from app.core.security import (
     Roles,
     refresh_access_token
 )
-from app.schemas.auth import (
+from ....schemas.auth import (
     LoginResponse,
     PasswordResetRequest,
     RefreshTokenRequest,
@@ -110,6 +110,12 @@ async def login(
     Raises:
         HTTPException: If authentication fails
     """
+    print("="*50)
+    print("🔥 LOGIN ENDPOINT REACHED!")
+    print(f"Username: {form_data.username}")
+    print(f"Password length: {len(form_data.password)}")
+    print("="*50)
+    
     user = authenticate_user(db_session, form_data.username, form_data.password)
     if not user:
         raise HTTPException(

@@ -128,7 +128,7 @@ class DatabaseSettings(BaseSettings):
         description="PostgreSQL password"
     )
     POSTGRES_DB: str = Field(
-        default="live-trading-system", 
+        default="trading_strategies", 
         description="PostgreSQL database name"
     )
     POSTGRES_MIN_CONNECTIONS: int = Field(
@@ -142,6 +142,22 @@ class DatabaseSettings(BaseSettings):
     POSTGRES_STATEMENT_TIMEOUT: int = Field(
         default=30000, 
         description="Statement timeout in ms"
+    )
+    
+    # Pooled connection for application
+    POSTGRES_POOL_URI: Optional[str] = Field(
+        default=None,
+        description="Pooled connection URI for application use"
+    )
+    
+    # SSL configuration
+    USE_SSL: bool = Field(
+        default=True,
+        description="Use SSL for database connections"
+    )
+    SSL_MODE: str = Field(
+        default="require",
+        description="SSL mode for connections (disable, allow, prefer, require, verify-ca, verify-full)"
     )
     
     # TimescaleDB for time-series market data
@@ -275,26 +291,67 @@ class DatabaseSettings(BaseSettings):
         # Apply values from environment variables with double underscore format
         # This must happen before Pydantic's own initialization
         
-        # Apply server and password settings that are used in tests
-        server_env = get_environment_value("DB", "POSTGRES_SERVER")
-        if server_env is not None:
-            data["POSTGRES_SERVER"] = server_env
-            
-        password_env = get_environment_value("DB", "POSTGRES_PASSWORD")
-        if password_env is not None:
-            data["POSTGRES_PASSWORD"] = password_env
-            
-        # Check for explicit URI override with double underscore format
-        uri_env = get_environment_value("DB", "POSTGRES_URI")
-        if uri_env is not None:
-            data["POSTGRES_URI"] = uri_env
-            
+        # PostgreSQL settings
+        postgres_fields = [
+            "POSTGRES_SERVER", "POSTGRES_PORT", "POSTGRES_USER", "POSTGRES_PASSWORD",
+            "POSTGRES_DB", "POSTGRES_MIN_CONNECTIONS", "POSTGRES_MAX_CONNECTIONS",
+            "POSTGRES_STATEMENT_TIMEOUT", "POSTGRES_URI", "POSTGRES_POOL_URI",
+            "SSL_MODE", "USE_SSL"
+        ]
+        
+        for field in postgres_fields:
+            env_value = get_environment_value("DB", field)
+            if env_value is not None:
+                data[field] = env_value
+        
+        # TimescaleDB settings
+        timescale_fields = [
+            "TIMESCALE_SERVER", "TIMESCALE_PORT", "TIMESCALE_USER", "TIMESCALE_PASSWORD",
+            "TIMESCALE_DB", "TIMESCALE_MIN_CONNECTIONS", "TIMESCALE_MAX_CONNECTIONS",
+            "TIMESCALE_STATEMENT_TIMEOUT", "TIMESCALE_URI"
+        ]
+        
+        for field in timescale_fields:
+            env_value = get_environment_value("DB", field)
+            if env_value is not None:
+                data[field] = env_value
+        
+        # MongoDB settings
+        mongodb_fields = [
+            "MONGODB_SERVER", "MONGODB_PORT", "MONGODB_USER", "MONGODB_PASSWORD",
+            "MONGODB_DB", "MONGODB_AUTH_SOURCE", "MONGODB_MAX_POOL_SIZE",
+            "MONGODB_MIN_POOL_SIZE", "MONGODB_MAX_IDLE_TIME_MS", "MONGODB_CONNECT_TIMEOUT_MS",
+            "MONGODB_URI"
+        ]
+        
+        for field in mongodb_fields:
+            env_value = get_environment_value("DB", field)
+            if env_value is not None:
+                data[field] = env_value
+        
+        # Redis settings
+        redis_fields = [
+            "REDIS_HOST", "REDIS_PORT", "REDIS_DB", "REDIS_PASSWORD", "REDIS_SSL",
+            "REDIS_CONNECTION_POOL_SIZE", "REDIS_SOCKET_TIMEOUT", "REDIS_SOCKET_CONNECT_TIMEOUT",
+            "REDIS_KEY_PREFIX", "REDIS_URI"
+        ]
+        
+        for field in redis_fields:
+            env_value = get_environment_value("DB", field)
+            if env_value is not None:
+                data[field] = env_value
+        
         super().__init__(**data)
+
+    def get_application_uri(self) -> str:
+        """Get the appropriate database URI for application use."""
+        # Always use direct connection
+        return str(self.POSTGRES_URI)
 
     # Connection strings constructors - properly indented
     @field_validator("POSTGRES_URI", mode="after")
     def assemble_postgres_uri(cls, v: Optional[str], info) -> Any:
-        """Assembles PostgreSQL URI if not provided."""
+        """Assembles PostgreSQL URI with SSL support for Supabase."""
         # Check again for explicit URI with double underscore format
         uri_env = get_environment_value("DB", "POSTGRES_URI")
         if uri_env is not None:
@@ -314,11 +371,16 @@ class DatabaseSettings(BaseSettings):
         port = values.get("POSTGRES_PORT", "5432")
         db = values.get("POSTGRES_DB", "")
         
-        return f"postgresql://{user}:{password}@{server}:{port}/{db}"
+        # Add SSL for Supabase or if USE_SSL is True
+        ssl_mode = ""
+        if values.get("USE_SSL", True) and ("supabase.co" in server or values.get("SSL_MODE")):
+            ssl_mode = f"?sslmode={values.get('SSL_MODE', 'require')}"
+        
+        return f"postgresql://{user}:{password}@{server}:{port}/{db}{ssl_mode}"
     
     @field_validator("TIMESCALE_URI", mode="before")
     def assemble_timescale_uri(cls, v: Optional[str], info) -> Any:
-        """Assembles TimescaleDB URI if not provided."""
+        """Assembles TimescaleDB URI with SSL support for Supabase."""
         if isinstance(v, str) and v:
             return v
             
@@ -331,7 +393,12 @@ class DatabaseSettings(BaseSettings):
         port = values.get("TIMESCALE_PORT", "5432")
         db = values.get("TIMESCALE_DB", "")
         
-        return f"postgresql://{user}:{password}@{server}:{port}/{db}"
+        # Add SSL for Supabase or if USE_SSL is True
+        ssl_mode = ""
+        if values.get("USE_SSL", True) and ("supabase.co" in server or values.get("SSL_MODE")):
+            ssl_mode = f"?sslmode={values.get('SSL_MODE', 'require')}"
+        
+        return f"postgresql://{user}:{password}@{server}:{port}/{db}{ssl_mode}"
     
     @field_validator("MONGODB_URI", mode="before")
     def assemble_mongodb_uri(cls, v: Optional[str], info) -> Any:
@@ -578,6 +645,22 @@ def get_settings() -> Settings:
     """
     global _settings_instance
     if _settings_instance is None:
+        # Load .env file first
+        from dotenv import load_dotenv
+        from pathlib import Path
+        
+        # Try to find .env file in various locations
+        env_paths = [
+            Path('.env'),
+            Path(__file__).parent.parent.parent / '.env',  # Relative to config.py
+            Path.cwd() / '.env'
+        ]
+        
+        for env_path in env_paths:
+            if env_path.exists():
+                load_dotenv(env_path)
+                break
+        
         _settings_instance = Settings()
     return _settings_instance
 
