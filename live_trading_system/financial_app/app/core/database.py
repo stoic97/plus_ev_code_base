@@ -33,7 +33,7 @@ from pymongo.collection import Collection
 from pymongo.database import Database as MongoDatabase
 from sqlalchemy import create_engine, event, text
 from sqlalchemy.engine import Engine
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 
 # Import our configuration

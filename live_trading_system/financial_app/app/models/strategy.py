@@ -32,8 +32,8 @@ from datetime import datetime, time
 # Import only the specific classes we need - avoid circular references
 from app.core.database import Base
 from app.models.base import (
-    TimestampMixin, UserRelationMixin, AuditMixin, 
-    SoftDeleteMixin, SerializableMixin, VersionedMixin, StatusMixin
+    TimestampMixin, UserRelationMixin, AuditMixin,
+    SoftDeleteMixin, VersionedMixin, StatusMixin
 )
 
 # ---- ENHANCED ENUMERATIONS SECTION ----
@@ -1110,7 +1110,7 @@ class TradeFeedback(StrategyBaseModel, TimestampMixin):
 
 
 # Core strategy model
-class Strategy(StrategyBaseModel, TimestampMixin, UserRelationMixin, 
+class Strategy(StrategyBaseModel, UserRelationMixin, 
                AuditMixin, SoftDeleteMixin, VersionedMixin, StatusMixin):
     """
     Comprehensive trading strategy model incorporating all of Rikk's principles.
