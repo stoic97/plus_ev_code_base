@@ -25,7 +25,6 @@ for i in range(len(project_parts), 0, -1):
             sys.path.insert(0, potential_path)
         break
 
-<<<<<<< HEAD
 # Mock the pydantic_settings import if it's not installed
 # This will only be used if the real module can't be imported
 try:
@@ -37,32 +36,6 @@ except ImportError:
     mock_settings.SettingsConfigDict = lambda **kwargs: {}
     sys.modules['pydantic_settings'] = mock_settings
     print("Note: Using mocked pydantic_settings module. Install with: pip install pydantic-settings")
-=======
-
-
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-sys.path.insert(0, project_root)
-# Create mock user for authentication tests
-def get_mock_user():
-    """Return a mock user for testing."""
-    from app.core.security import User
-    return User(
-        username="testuser",
-        email="test@example.com",
-        full_name="Test User",
-        roles=["observer"]
-    )
-
-# Create mock database function
-def get_mock_db():
-    """Return a mock database for testing."""
-    mock_db = MagicMock()
-    # Make session work as a context manager
-    mock_session = MagicMock()
-    mock_db.session.return_value.__enter__.return_value = mock_session
-    mock_db.session.return_value.__exit__.return_value = None
-    return mock_db
->>>>>>> fe4b7104 (hypertable creation version for market data)
 
 @pytest.fixture
 def db_session():
