@@ -1,0 +1,73 @@
+2025-04-25 16:25:18,859 - __main__ - INFO - Starting database verification tests
+2025-04-25 16:25:18,860 - db_verification - INFO - Using real database connection for verification
+2025-04-25 16:25:18,864 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test reporting initialized. Report directory: D:\e backup\web development\plusEv\plusEV_code_base\plus_ev_code_base\live_trading_system\financial_app\tests\integration\data_layer_e2e\reports\20250425_162515
+2025-04-25 16:25:18,865 - db_verification - INFO - Connecting to database: trading_db at localhost
+2025-04-25 16:25:19,152 - db_verification - ERROR - Failed to connect to database: connection to server at "localhost" (::1), port 5432 failed: FATAL:  password authentication failed for user "test_user"
+
+2025-04-25 16:25:19,168 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'Database Connection' completed with status: FAIL
+2025-04-25 16:25:19,168 - financial_app.tests.integration.data_layer_e2e.utils.reporting - ERROR - Test 'Database Connection' error: Failed to connect to database: connection to server at "localhost" (::1), port 5432 failed: FATAL:  password authentication failed for user "test_user"
+
+2025-04-25 16:25:19,168 - db_verification - WARNING - Database connection failed, falling back to mock database
+2025-04-25 16:25:19,178 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test reporting initialized. Report directory: D:\e backup\web development\plusEv\plusEV_code_base\plus_ev_code_base\live_trading_system\financial_app\tests\integration\data_layer_e2e\reports\20250425_162515
+2025-04-25 16:25:19,182 - db_verification - INFO - Mock database initialized with data for symbols: AAPL, MSFT, BTC/USD
+2025-04-25 16:25:19,182 - db_verification - INFO - Connecting to mock database
+2025-04-25 16:25:19,186 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'Database Connection' completed with status: PASS
+2025-04-25 16:25:19,187 - db_verification - INFO - Starting verification for AAPL
+2025-04-25 16:25:19,187 - db_verification - INFO - Mock verification of data insertion for AAPL
+2025-04-25 16:25:19,190 - db_verification - ERROR - Error in mock data insertion verification for AAPL: TestReporter.record_test_result() got multiple values for argument 'details'
+2025-04-25 16:25:19,196 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'Data Insertion - AAPL' completed with status: FAIL
+2025-04-25 16:25:19,197 - db_verification - INFO - Mock verification of timestamp processing for AAPL
+2025-04-25 16:25:19,198 - db_verification - ERROR - Error in mock timestamp processing verification for AAPL: TestReporter.record_test_result() got multiple values for argument 'details'
+2025-04-25 16:25:19,203 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'Timestamp Processing - AAPL' completed with status: FAIL
+2025-04-25 16:25:19,204 - db_verification - INFO - Mock query performance test for AAPL
+2025-04-25 16:25:19,204 - db_verification - INFO - Mock query: Simple time range - 0.05s for 100 rows
+2025-04-25 16:25:19,204 - db_verification - INFO - Mock query: Daily aggregation - 0.12s for 7 rows
+2025-04-25 16:25:19,204 - db_verification - INFO - Mock query: Join query - 0.18s for 100 rows
+2025-04-25 16:25:19,204 - db_verification - ERROR - Error in mock query performance test for AAPL: TestReporter.record_test_result() got multiple values for argument 'details'
+2025-04-25 16:25:19,204 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'Query Performance - AAPL' completed with status: FAIL
+2025-04-25 16:25:19,204 - db_verification - INFO - Mock data integrity validation for AAPL
+2025-04-25 16:25:19,204 - db_verification - ERROR - Error in mock data integrity validation for AAPL: TestReporter.record_test_result() got multiple values for argument 'details'
+2025-04-25 16:25:19,220 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'Data Integrity - AAPL' completed with status: FAIL
+2025-04-25 16:25:19,220 - db_verification - INFO - Completed verification for AAPL
+2025-04-25 16:25:19,220 - db_verification - INFO - Starting verification for MSFT
+2025-04-25 16:25:19,220 - db_verification - INFO - Mock verification of data insertion for MSFT
+2025-04-25 16:25:19,220 - db_verification - ERROR - Error in mock data insertion verification for MSFT: TestReporter.record_test_result() got multiple values for argument 'details'
+2025-04-25 16:25:19,231 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'Data Insertion - MSFT' completed with status: FAIL
+2025-04-25 16:25:19,231 - db_verification - INFO - Mock verification of timestamp processing for MSFT
+2025-04-25 16:25:19,231 - db_verification - ERROR - Error in mock timestamp processing verification for MSFT: TestReporter.record_test_result() got multiple values for argument 'details'
+2025-04-25 16:25:19,231 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'Timestamp Processing - MSFT' completed with status: FAIL
+2025-04-25 16:25:19,231 - db_verification - INFO - Mock query performance test for MSFT
+2025-04-25 16:25:19,231 - db_verification - INFO - Mock query: Simple time range - 0.05s for 100 rows
+2025-04-25 16:25:19,244 - db_verification - INFO - Mock query: Daily aggregation - 0.12s for 7 rows
+2025-04-25 16:25:19,244 - db_verification - INFO - Mock query: Join query - 0.18s for 100 rows
+2025-04-25 16:25:19,244 - db_verification - ERROR - Error in mock query performance test for MSFT: TestReporter.record_test_result() got multiple values for argument 'details'
+2025-04-25 16:25:19,249 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'Query Performance - MSFT' completed with status: FAIL
+2025-04-25 16:25:19,249 - db_verification - INFO - Mock data integrity validation for MSFT
+2025-04-25 16:25:19,249 - db_verification - ERROR - Error in mock data integrity validation for MSFT: TestReporter.record_test_result() got multiple values for argument 'details'
+2025-04-25 16:25:19,258 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'Data Integrity - MSFT' completed with status: FAIL
+2025-04-25 16:25:19,258 - db_verification - INFO - Completed verification for MSFT
+2025-04-25 16:25:19,258 - db_verification - INFO - Starting verification for BTC/USD
+2025-04-25 16:25:19,258 - db_verification - INFO - Mock verification of data insertion for BTC/USD
+2025-04-25 16:25:19,258 - db_verification - ERROR - Error in mock data insertion verification for BTC/USD: TestReporter.record_test_result() got multiple values for argument 'details'
+2025-04-25 16:25:19,258 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'Data Insertion - BTC/USD' completed with status: FAIL
+2025-04-25 16:25:19,270 - db_verification - INFO - Mock verification of timestamp processing for BTC/USD
+2025-04-25 16:25:19,272 - db_verification - ERROR - Error in mock timestamp processing verification for BTC/USD: TestReporter.record_test_result() got multiple values for argument 'details'
+2025-04-25 16:25:19,275 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'Timestamp Processing - BTC/USD' completed with status: FAIL
+2025-04-25 16:25:19,279 - db_verification - INFO - Mock query performance test for BTC/USD
+2025-04-25 16:25:19,280 - db_verification - INFO - Mock query: Simple time range - 0.05s for 100 rows
+2025-04-25 16:25:19,280 - db_verification - INFO - Mock query: Daily aggregation - 0.12s for 7 rows
+2025-04-25 16:25:19,280 - db_verification - INFO - Mock query: Join query - 0.18s for 100 rows
+2025-04-25 16:25:19,282 - db_verification - ERROR - Error in mock query performance test for BTC/USD: TestReporter.record_test_result() got multiple values for argument 'details'
+2025-04-25 16:25:19,285 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'Query Performance - BTC/USD' completed with status: FAIL
+2025-04-25 16:25:19,285 - db_verification - INFO - Mock data integrity validation for BTC/USD
+2025-04-25 16:25:19,285 - db_verification - ERROR - Error in mock data integrity validation for BTC/USD: TestReporter.record_test_result() got multiple values for argument 'details'
+2025-04-25 16:25:19,301 - financial_app.tests.integration.data_layer_e2e.utils.reporting - INFO - Test 'Data Integrity - BTC/USD' completed with status: FAIL
+2025-04-25 16:25:19,301 - db_verification - INFO - Completed verification for BTC/USD
+2025-04-25 16:25:19,301 - db_verification - ERROR - Error during database verification: 'PerformanceTracker' object has no attribute 'print_summary'
+Traceback (most recent call last):
+  File "D:\e backup\web development\plusEv\plusEV_code_base\plus_ev_code_base\live_trading_system\financial_app\tests\integration\data_layer_e2e\verify_db_storage.py", line 1146, in main
+    verifier.perf_tracker.print_summary()
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'PerformanceTracker' object has no attribute 'print_summary'
+2025-04-25 16:25:19,308 - db_verification - INFO - Mock database connection closed
+2025-04-25 16:25:19,308 - __main__ - ERROR - Database verification failed with exit code 1

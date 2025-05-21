@@ -11,13 +11,13 @@ from typing import Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from pydantic import BaseModel
 
-from app.core.security import get_current_user
-from app.db.migrations.helpers.db_init import (
+from .security import get_current_user
+from financial_app.app.db.migrations.helpers.db_init import (
     check_all_databases, 
     initialize_database,
     run_migrations
 )
-from app.models.user import UserAuth
+from financial_app.app.models.user import UserAuth
 
 # Set up logging
 logger = logging.getLogger(__name__)

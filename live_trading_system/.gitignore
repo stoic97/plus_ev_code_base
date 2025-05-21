@@ -1,11 +1,16 @@
 # Python gitignore
 
-# Virtual environments
+# Virtual Environments
 venv/
+**/venv/
 env/
-ENV/
+**/env/
 .venv/
-.env/
+**/.venv/
+ENV/
+**/ENV/
+**/fresh_venv/
+**/model_strategy_env/
 
 # Python bytecode
 __pycache__/

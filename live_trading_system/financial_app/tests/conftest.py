@@ -1,14 +1,19 @@
 """
-Pytest configuration file for financial_app tests.
-
-This module configures the test environment and provides fixtures for testing
-without requiring connections to actual databases.
+Pytest configuration and fixtures for unit tests.
+This conftest.py is specifically for unit tests and uses mocks.
 """
 
 import os
 import sys
 import pytest
+from fastapi.testclient import TestClient
 from unittest.mock import MagicMock, patch
+from pathlib import Path
+
+# Add the project root to the path for unit tests
+test_dir = Path(__file__).parent
+project_root = test_dir.parent.parent
+sys.path.insert(0, str(project_root))
 
 # Add the proper path to the Python path
 # The error shows your project structure has duplicated directories
@@ -16,26 +21,49 @@ from unittest.mock import MagicMock, patch
 current_path = os.path.dirname(os.path.abspath(__file__))
 project_parts = current_path.split(os.sep)
 
-# Find the correct path by looking for financial_app
-for i in range(len(project_parts), 0, -1):
-    potential_path = os.sep.join(project_parts[:i])
-    app_path = os.path.join(potential_path, "app")
-    if os.path.exists(app_path) and os.path.isdir(app_path):
-        if potential_path not in sys.path:
-            sys.path.insert(0, potential_path)
-        break
-
-# Mock the pydantic_settings import if it's not installed
-# This will only be used if the real module can't be imported
+# Import your application with the correct path
 try:
-    import pydantic_settings
-except ImportError:
-    # Create a simple mock for BaseSettings and SettingsConfigDict
-    mock_settings = MagicMock()
-    mock_settings.BaseSettings = type('BaseSettings', (), {})
-    mock_settings.SettingsConfigDict = lambda **kwargs: {}
-    sys.modules['pydantic_settings'] = mock_settings
-    print("Note: Using mocked pydantic_settings module. Install with: pip install pydantic-settings")
+    from financial_app.app.main import app
+    from financial_app.app.core.database import get_db
+    from financial_app.app.core.security import get_current_user, get_current_active_user
+    IMPORTS_AVAILABLE = True
+except ImportError as e:
+    IMPORTS_AVAILABLE = False
+    print(f"Warning: Could not import application modules: {e}")
+
+# Create mock user for authentication tests
+def get_mock_user():
+    """Return a mock user for testing."""
+    if IMPORTS_AVAILABLE:
+        try:
+            from financial_app.app.core.security import User
+            return User(
+                username="testuser",
+                email="test@example.com",
+                full_name="Test User",
+                roles=["observer"]
+            )
+        except ImportError:
+            pass
+    
+    # Fallback mock user
+    mock_user = MagicMock()
+    mock_user.username = "testuser"
+    mock_user.email = "test@example.com"
+    mock_user.full_name = "Test User"
+    mock_user.roles = ["observer"]
+    mock_user.disabled = False
+    return mock_user
+
+# Create mock database function
+def get_mock_db():
+    """Return a mock database for testing."""
+    mock_db = MagicMock()
+    # Make session work as a context manager
+    mock_session = MagicMock()
+    mock_db.session.return_value.__enter__.return_value = mock_session
+    mock_db.session.return_value.__exit__.return_value = None
+    return mock_db
 
 @pytest.fixture
 def db_session():
@@ -44,8 +72,13 @@ def db_session():
     
     This fixture offers a transactional session that rolls back after each test.
     """
-    # Create a mock session
-    session = MagicMock()
+    if not IMPORTS_AVAILABLE:
+        pytest.skip("Application modules not available")
+    
+    # Override dependencies
+    app.dependency_overrides[get_db] = get_mock_db
+    app.dependency_overrides[get_current_user] = get_mock_user
+    app.dependency_overrides[get_current_active_user] = get_mock_user
     
     # Make add and add_all actually store objects
     added_objects = []
@@ -91,23 +124,88 @@ def db_session():
     
     return session
 
-# Mock database utilities to avoid actual database connections
-@pytest.fixture(autouse=True)
-def mock_database_connections():
-    """Automatically mock all database connections for all tests."""
-    with patch('app.core.database.PostgresDB') as postgres_mock, \
-         patch('app.core.database.TimescaleDB') as timescale_mock, \
-         patch('app.core.database.MongoDB') as mongo_mock, \
-         patch('app.core.database.RedisDB') as redis_mock:
-        
-        # Configure all mocks to behave properly
-        for db_mock in [postgres_mock, timescale_mock, mongo_mock, redis_mock]:
-            db_mock.return_value.is_connected = True
-            db_mock.return_value.check_health.return_value = True
-            
-        yield {
-            'postgres': postgres_mock,
-            'timescale': timescale_mock,
-            'mongodb': mongo_mock,
-            'redis': redis_mock
-        }
+@pytest.fixture
+def mock_db():
+    """Provide a mock database instance for direct use in tests."""
+    return get_mock_db()
+
+@pytest.fixture
+def mock_user():
+    """Provide a mock user for direct use in tests."""
+    return get_mock_user()
+
+@pytest.fixture
+def mock_settings():
+    """Create mock settings for unit tests."""
+    settings = MagicMock()
+    # Create the nested security attribute
+    settings.security = MagicMock()
+    settings.security.SECRET_KEY = "test_secret_key"
+    settings.security.ALGORITHM = "HS256"
+    settings.security.ACCESS_TOKEN_EXPIRE_MINUTES = 30
+    settings.security.REFRESH_TOKEN_EXPIRE_DAYS = 7
+    settings.security.ALLOWED_IP_RANGES = ["192.168.0.0/16", "10.0.0.0/8"]
+    
+    # Add database settings
+    settings.db = MagicMock()
+    settings.db.POSTGRES_URI = "postgresql://test:test@localhost:5432/test_db"
+    settings.db.POSTGRES_SERVER = "localhost"
+    settings.db.POSTGRES_PORT = "5432"
+    settings.db.POSTGRES_USER = "test"
+    settings.db.POSTGRES_PASSWORD = "test"
+    settings.db.POSTGRES_DB = "test_db"
+    settings.db.USE_SSL = False
+    settings.db.SSL_MODE = "disable"
+    
+    return settings
+
+@pytest.fixture
+def mock_db_session():
+    """Create a mock database session for testing."""
+    session_mock = MagicMock()
+    session_mock.__enter__ = MagicMock(return_value=session_mock)
+    session_mock.__exit__ = MagicMock(return_value=None)
+    return session_mock
+
+@pytest.fixture
+def mock_request():
+    """Create a mock FastAPI Request object."""
+    request = MagicMock()
+    request.client.host = "192.168.1.100"
+    request.headers = {}
+    request.method = "GET"
+    return request
+
+# Unit test specific fixtures
+@pytest.fixture
+def test_user_data():
+    """Sample user data for testing."""
+    return {
+        "username": "testuser",
+        "email": "test@example.com",
+        "full_name": "Test User",
+        "disabled": False,
+        "roles": ["trader", "analyst"]
+    }
+
+@pytest.fixture
+def sample_token_data():
+    """Sample token data for testing."""
+    return {
+        "sub": "testuser",
+        "roles": ["trader", "analyst"]
+    }
+
+# Helper function for setting up database query mocks
+def setup_db_user_query(mock_db_session, test_user_data):
+    """Set up mock database session to return test user data."""
+    mock_row = MagicMock()
+    mock_row.username = test_user_data["username"]
+    mock_row.email = test_user_data["email"]
+    mock_row.full_name = test_user_data.get("full_name")
+    mock_row.disabled = test_user_data.get("disabled", False)
+    mock_row.hashed_password = test_user_data.get("hashed_password")
+    mock_row.roles = ",".join(test_user_data.get("roles", []))
+    
+    mock_db_session.execute.return_value.fetchone.return_value = mock_row
+    return mock_row

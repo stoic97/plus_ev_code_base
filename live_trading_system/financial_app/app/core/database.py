@@ -37,7 +37,7 @@ from sqlalchemy.orm import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 
 # Import our configuration
-from app.core.config import get_settings, Settings
+from .config import get_settings, Settings
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -133,20 +133,31 @@ class PostgresDB(Database):
     def connect(self) -> None:
         """
         Establish connection to PostgreSQL database using settings.
-        Creates connection pool and session factory.
+        Creates connection pool and session factory with SSL support.
         """
         try:
+            # Always use direct connection URI
+            connection_url = str(self.settings.db.POSTGRES_URI)
+            
+            # Determine connect_args based on whether we're connecting to Supabase
+            connect_args = {
+                "connect_timeout": 10,
+                "options": f"-c statement_timeout={self.settings.db.POSTGRES_STATEMENT_TIMEOUT}"
+            }
+            
+            # Add SSL configuration if connecting to Supabase or if SSL is enabled
+            if "supabase.co" in connection_url or self.settings.db.USE_SSL:
+                connect_args["sslmode"] = self.settings.db.SSL_MODE
+                logger.info(f"Connecting to PostgreSQL with SSL mode: {self.settings.db.SSL_MODE}")
+            
             # Create engine with connection pool configuration
             self.engine = create_engine(
-                str(self.settings.db.POSTGRES_URI),
+                connection_url,
                 pool_pre_ping=True,  # Verify connections before using them
                 pool_size=self.settings.db.POSTGRES_MIN_CONNECTIONS,
                 max_overflow=self.settings.db.POSTGRES_MAX_CONNECTIONS - self.settings.db.POSTGRES_MIN_CONNECTIONS,
                 pool_recycle=3600,  # Recycle connections after 1 hour
-                connect_args={
-                    "connect_timeout": 10,  # Connection timeout in seconds
-                    "options": f"-c statement_timeout={self.settings.db.POSTGRES_STATEMENT_TIMEOUT}"  # Query timeout
-                }
+                connect_args=connect_args
             )
             
             # Set up session factory
@@ -165,6 +176,10 @@ class PostgresDB(Database):
             
             self.is_connected = True
             logger.info("PostgreSQL connection established successfully")
+            
+            # Log if we're using Supabase
+            if "supabase.co" in connection_url:
+                logger.info("Connected to Supabase PostgreSQL instance")
         
         except Exception as e:
             self.is_connected = False
@@ -259,6 +274,8 @@ class PostgresDB(Database):
                 "pool_checkedin": pool.checkedin(),
                 "pool_overflow": pool.overflow(),
                 "pool_checkedout": pool.checkedout(),
+                "url_host": self.engine.url.host,
+                "ssl_enabled": "supabase.co" in str(self.engine.url) or self.settings.db.USE_SSL
             })
         
         return status
@@ -298,27 +315,36 @@ class TimescaleDB(PostgresDB):
     TimescaleDB connection manager.
     
     Extends PostgreSQL functionality with TimescaleDB-specific features
-    for time-series data management.
+    for time-series data management. Falls back gracefully if TimescaleDB
+    extension is not available (e.g., on Supabase).
     """
     
     def connect(self) -> None:
         """
-        Establish connection to TimescaleDB using settings.
+        Establish connection to TimescaleDB/PostgreSQL using settings.
         Creates connection pool and session factory.
         """
         try:
+            # Determine connect_args based on whether we're connecting to Supabase
+            connect_args = {
+                "connect_timeout": 10,
+                "options": f"-c statement_timeout={self.settings.db.TIMESCALE_STATEMENT_TIMEOUT}"
+            }
+            
+            # Add SSL configuration if connecting to Supabase or if SSL is enabled
+            timescale_uri = str(self.settings.db.TIMESCALE_URI)
+            if "supabase.co" in timescale_uri or self.settings.db.USE_SSL:
+                connect_args["sslmode"] = self.settings.db.SSL_MODE
+                logger.info(f"Connecting to TimescaleDB with SSL mode: {self.settings.db.SSL_MODE}")
+            
             # Create engine with connection pool configuration
-            # Note: We use TimescaleDB specific settings here
             self.engine = create_engine(
-                str(self.settings.db.TIMESCALE_URI),
+                timescale_uri,
                 pool_pre_ping=True,
                 pool_size=self.settings.db.TIMESCALE_MIN_CONNECTIONS,
                 max_overflow=self.settings.db.TIMESCALE_MAX_CONNECTIONS - self.settings.db.TIMESCALE_MIN_CONNECTIONS,
                 pool_recycle=3600,
-                connect_args={
-                    "connect_timeout": 10,
-                    "options": f"-c statement_timeout={self.settings.db.TIMESCALE_STATEMENT_TIMEOUT}"
-                }
+                connect_args=connect_args
             )
             
             # Set up session factory
@@ -335,16 +361,40 @@ class TimescaleDB(PostgresDB):
             with self.engine.connect() as conn:
                 result = conn.execute(text("SELECT extname FROM pg_extension WHERE extname = 'timescaledb'"))
                 rows = result.fetchall()
+                
                 if len(rows) == 0:
-                    logger.warning("TimescaleDB extension not found in database!")
+                    # Check if we're on Supabase
+                    if "supabase.co" in timescale_uri:
+                        logger.warning("TimescaleDB extension not available on Supabase - falling back to standard PostgreSQL")
+                    else:
+                        logger.warning("TimescaleDB extension not found in database!")
+                else:
+                    logger.info("TimescaleDB extension found and verified")
             
             self.is_connected = True
-            logger.info("TimescaleDB connection established successfully")
+            logger.info("TimescaleDB/PostgreSQL connection established successfully")
         
         except Exception as e:
             self.is_connected = False
             logger.error(f"Failed to connect to TimescaleDB: {e}")
             raise
+    
+    def is_timescaledb_available(self) -> bool:
+        """
+        Check if TimescaleDB extension is available.
+        
+        Returns:
+            True if TimescaleDB extension is available, False otherwise
+        """
+        if not self.engine:
+            return False
+            
+        try:
+            with self.engine.connect() as conn:
+                result = conn.execute(text("SELECT 1 FROM pg_extension WHERE extname = 'timescaledb'"))
+                return result.rowcount > 0
+        except Exception:
+            return False
     
     def get_time_bucket(self, table: str, time_column: str, interval: str,
                       aggregation: str, value_column: str,
@@ -352,6 +402,7 @@ class TimescaleDB(PostgresDB):
                       filters: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
         """
         Execute a TimescaleDB time_bucket query for time-series aggregation.
+        Falls back to standard PostgreSQL date_trunc if TimescaleDB not available.
         
         Args:
             table: Table name
@@ -365,21 +416,6 @@ class TimescaleDB(PostgresDB):
         
         Returns:
             List of time buckets with aggregated values
-        
-        Example:
-            ```
-            # Get hourly average prices for AAPL
-            prices = timescale_db.get_time_bucket(
-                'market_data', 
-                'timestamp', 
-                '1 hour',
-                'AVG', 
-                'price',
-                datetime(2023, 1, 1),
-                datetime(2023, 1, 2),
-                {'symbol': 'AAPL'}
-            )
-            ```
         """
         # Build WHERE clause from filters
         where_clauses = []
@@ -397,20 +433,39 @@ class TimescaleDB(PostgresDB):
         
         where_clause = " AND ".join(where_clauses)
         
-        # Build query
-        query = f"""
-        SELECT 
-            time_bucket('{interval}', {time_column}) AS bucket,
-            {aggregation}({value_column}) AS value
-        FROM 
-            {table}
-        WHERE 
-            {where_clause}
-        GROUP BY 
-            bucket
-        ORDER BY 
-            bucket ASC
-        """
+        # Check if TimescaleDB is available
+        if self.is_timescaledb_available():
+            # Use TimescaleDB time_bucket
+            query = f"""
+            SELECT 
+                time_bucket('{interval}', {time_column}) AS bucket,
+                {aggregation}({value_column}) AS value
+            FROM 
+                {table}
+            WHERE 
+                {where_clause}
+            GROUP BY 
+                bucket
+            ORDER BY 
+                bucket ASC
+            """
+        else:
+            # Fall back to PostgreSQL date_trunc
+            # Convert interval to date_trunc format
+            trunc_interval = interval.split(' ')[1] if ' ' in interval else 'hour'
+            query = f"""
+            SELECT 
+                date_trunc('{trunc_interval}', {time_column}) AS bucket,
+                {aggregation}({value_column}) AS value
+            FROM 
+                {table}
+            WHERE 
+                {where_clause}
+            GROUP BY 
+                bucket
+            ORDER BY 
+                bucket ASC
+            """
         
         # Execute query
         with self.session() as session:
@@ -422,6 +477,7 @@ class TimescaleDB(PostgresDB):
                 start_time: datetime, end_time: datetime) -> List[Dict[str, Any]]:
         """
         Get OHLCV (Open, High, Low, Close, Volume) data for a symbol.
+        Falls back to standard PostgreSQL functions if TimescaleDB not available.
         
         Args:
             table: Table name
@@ -436,49 +492,60 @@ class TimescaleDB(PostgresDB):
         
         Returns:
             List of OHLCV data points
-            
-        Example:
-            ```
-            # Get daily OHLCV for Apple stock
-            ohlcv = timescale_db.get_ohlcv(
-                'market_data', 
-                'symbol', 
-                'timestamp', 
-                'price', 
-                'volume',
-                '1 day', 
-                'AAPL',
-                datetime(2023, 1, 1),
-                datetime(2023, 1, 31)
-            )
-            ```
         """
-        query = f"""
-        SELECT 
-            time_bucket('{interval}', {time_column}) AS time,
-            {symbol_column} AS symbol,
-            FIRST({price_column}, {time_column}) AS open,
-            MAX({price_column}) AS high,
-            MIN({price_column}) AS low,
-            LAST({price_column}, {time_column}) AS close,
-            SUM({volume_column}) AS volume
-        FROM 
-            {table}
-        WHERE 
-            {symbol_column} = :symbol
-            AND {time_column} >= :start_time
-            AND {time_column} <= :end_time
-        GROUP BY 
-            time, symbol
-        ORDER BY 
-            time ASC
-        """
-        
         params = {
             "symbol": symbol,
             "start_time": start_time,
             "end_time": end_time
         }
+        
+        # Check if TimescaleDB is available
+        if self.is_timescaledb_available():
+            # Use TimescaleDB functions
+            query = f"""
+            SELECT 
+                time_bucket('{interval}', {time_column}) AS time,
+                {symbol_column} AS symbol,
+                FIRST({price_column}, {time_column}) AS open,
+                MAX({price_column}) AS high,
+                MIN({price_column}) AS low,
+                LAST({price_column}, {time_column}) AS close,
+                SUM({volume_column}) AS volume
+            FROM 
+                {table}
+            WHERE 
+                {symbol_column} = :symbol
+                AND {time_column} >= :start_time
+                AND {time_column} <= :end_time
+            GROUP BY 
+                time, symbol
+            ORDER BY 
+                time ASC
+            """
+        else:
+            # Fall back to standard PostgreSQL
+            # Convert interval to date_trunc format
+            trunc_interval = interval.split(' ')[1] if ' ' in interval else 'hour'
+            query = f"""
+            SELECT 
+                date_trunc('{trunc_interval}', {time_column}) AS time,
+                {symbol_column} AS symbol,
+                (array_agg({price_column} ORDER BY {time_column}))[1] AS open,
+                MAX({price_column}) AS high,
+                MIN({price_column}) AS low,
+                (array_agg({price_column} ORDER BY {time_column} DESC))[1] AS close,
+                SUM({volume_column}) AS volume
+            FROM 
+                {table}
+            WHERE 
+                {symbol_column} = :symbol
+                AND {time_column} >= :start_time
+                AND {time_column} <= :end_time
+            GROUP BY 
+                time, symbol
+            ORDER BY 
+                time ASC
+            """
         
         with self.session() as session:
             result = session.execute(text(query), params)
@@ -494,6 +561,17 @@ class TimescaleDB(PostgresDB):
                 }
                 for row in result
             ]
+    
+    def get_status(self) -> Dict[str, Any]:
+        """Get detailed status information about TimescaleDB connection."""
+        status = super().get_status()
+        
+        # Add TimescaleDB-specific information
+        status.update({
+            "timescaledb_available": self.is_timescaledb_available()
+        })
+        
+        return status
 
 
 #################################################
@@ -884,20 +962,20 @@ class RedisDB(Database):
         return self.client.set(self._get_key(key), value, ex=expiration)
     
     def delete(self, key: str) -> int:
-        """
-        Delete a key from Redis.
-        
-        Args:
-            key: Redis key
-        
-        Returns:
-            Number of keys deleted (0 or 1)
-        """
-        if not self.client:
-            raise RuntimeError("Redis connection not initialized. Call connect() first.")
-        
-        return self.client.delete(self._get_key(key))
-    
+       """
+       Delete a key from Redis.
+       
+       Args:
+           key: Redis key
+       
+       Returns:
+           Number of keys deleted (0 or 1)
+       """
+       if not self.client:
+           raise RuntimeError("Redis connection not initialized. Call connect() first.")
+       
+       return self.client.delete(self._get_key(key))
+   
     def get_json(self, key: str) -> Optional[Any]:
         """
         Get a JSON value from Redis.
@@ -920,7 +998,7 @@ class RedisDB(Database):
             except json.JSONDecodeError:
                 logger.warning(f"Failed to decode JSON for key {key}")
         return None
-    
+   
     def set_json(self, key: str, value: Any, expiration: Optional[int] = None) -> bool:
         """
         Set a JSON value in Redis.
@@ -1023,7 +1101,7 @@ class RedisDB(Database):
             return self.set(key, value, expiration)
         else:
             return self.set_json(key, value, expiration)
-        
+       
 
 #################################################
 # Database Connection Management
@@ -1035,210 +1113,210 @@ _db_instances: Dict[DatabaseType, Database] = {}
 
 # Modify your get_db_instance function to handle mocking better:
 def get_db_instance(db_type: DatabaseType) -> Database:
-    """
-    Get a database instance of the specified type.
-    Uses a singleton pattern to reuse existing connections.
-    
-    Args:
-        db_type: Database type enum value
-        
-    Returns:
-        Database instance of the requested type
-    
-    Raises:
-        ValueError: If an unsupported database type is requested
-    """
-    global _db_instances
-    
-    # Return existing instance if available
-    if db_type in _db_instances:
-        return _db_instances[db_type]
-    
-    # Otherwise create a new instance
-    settings = get_settings()
-    
-    if db_type == DatabaseType.POSTGRESQL:
-        db = PostgresDB(settings=settings)
-    elif db_type == DatabaseType.TIMESCALEDB:
-        db = TimescaleDB(settings=settings)
-    elif db_type == DatabaseType.MONGODB:
-        db = MongoDB(settings=settings)
-    elif db_type == DatabaseType.REDIS:
-        db = RedisDB(settings=settings)
-    else:
-        raise ValueError(f"Unsupported database type: {db_type}")
-    
-    # Connect to database
-    if not db.is_connected:
-        db.connect()
-    
-    # Store instance in cache
-    _db_instances[db_type] = db
-    
-    return db
+   """
+   Get a database instance of the specified type.
+   Uses a singleton pattern to reuse existing connections.
+   
+   Args:
+       db_type: Database type enum value
+       
+   Returns:
+       Database instance of the requested type
+   
+   Raises:
+       ValueError: If an unsupported database type is requested
+   """
+   global _db_instances
+   
+   # Return existing instance if available
+   if db_type in _db_instances:
+       return _db_instances[db_type]
+   
+   # Otherwise create a new instance
+   settings = get_settings()
+   
+   if db_type == DatabaseType.POSTGRESQL:
+       db = PostgresDB(settings=settings)
+   elif db_type == DatabaseType.TIMESCALEDB:
+       db = TimescaleDB(settings=settings)
+   elif db_type == DatabaseType.MONGODB:
+       db = MongoDB(settings=settings)
+   elif db_type == DatabaseType.REDIS:
+       db = RedisDB(settings=settings)
+   else:
+       raise ValueError(f"Unsupported database type: {db_type}")
+   
+   # Connect to database
+   if not db.is_connected:
+       db.connect()
+   
+   # Store instance in cache
+   _db_instances[db_type] = db
+   
+   return db
 
 
 
 def close_db_connections():
-    """
-    Close all database connections.
-    Should be called when the application shuts down.
-    """
-    global _db_instances
-    
-    for db_type, db in _db_instances.items():
-        try:
-            if db.is_connected:
-                logger.info(f"Closing {db_type.name} connection")
-                db.disconnect()
-        except Exception as e:
-            logger.error(f"Error closing {db_type.name} connection: {e}")
-    
-    # Clear instances
-    _db_instances = {}
+   """
+   Close all database connections.
+   Should be called when the application shuts down.
+   """
+   global _db_instances
+   
+   for db_type, db in _db_instances.items():
+       try:
+           if db.is_connected:
+               logger.info(f"Closing {db_type.name} connection")
+               db.disconnect()
+       except Exception as e:
+           logger.error(f"Error closing {db_type.name} connection: {e}")
+   
+   # Clear instances
+   _db_instances = {}
 
 
 @contextmanager
 def db_session(db_type: DatabaseType) -> Generator[Session, None, None]:
-    """
-    Get a database session as a context manager.
-    Only works for relational databases (PostgreSQL and TimescaleDB).
-    
-    Args:
-        db_type: Database type enum value (must be PostgreSQL or TimescaleDB)
-        
-    Yields:
-        SQLAlchemy session
-    
-    Raises:
-        TypeError: If requested for a non-relational database
-    
-    Example:
-        ```
-        with db_session(DatabaseType.POSTGRESQL) as session:
-            users = session.query(User).all()
-        ```
-    """
-    if db_type not in (DatabaseType.POSTGRESQL, DatabaseType.TIMESCALEDB):
-        raise TypeError(f"Cannot get session for non-relational database: {db_type}")
-    
-    # Get database instance
-    db = get_db_instance(db_type)
-    
-    # We know this is a PostgresDB or TimescaleDB instance
-    if isinstance(db, (PostgresDB, TimescaleDB)):
-        with db.session() as session:
-            yield session
-    else:
-        # This should never happen due to the check above
-        raise TypeError(f"Database instance is not relational: {type(db)}")
+   """
+   Get a database session as a context manager.
+   Only works for relational databases (PostgreSQL and TimescaleDB).
+   
+   Args:
+       db_type: Database type enum value (must be PostgreSQL or TimescaleDB)
+       
+   Yields:
+       SQLAlchemy session
+   
+   Raises:
+       TypeError: If requested for a non-relational database
+   
+   Example:
+       ```
+       with db_session(DatabaseType.POSTGRESQL) as session:
+           users = session.query(User).all()
+       ```
+   """
+   if db_type not in (DatabaseType.POSTGRESQL, DatabaseType.TIMESCALEDB):
+       raise TypeError(f"Cannot get session for non-relational database: {db_type}")
+   
+   # Get database instance
+   db = get_db_instance(db_type)
+   
+   # We know this is a PostgresDB or TimescaleDB instance
+   if isinstance(db, (PostgresDB, TimescaleDB)):
+       with db.session() as session:
+           yield session
+   else:
+       # This should never happen due to the check above
+       raise TypeError(f"Database instance is not relational: {type(db)}")
 
 
 def get_db() -> PostgresDB:
-    """
-    Dependency injection function for FastAPI to get a PostgreSQL database instance.
-    
-    Returns:
-        PostgreSQL database instance
-    
-    Example:
-        ```
-        @app.get("/users")
-        def get_users(db: PostgresDB = Depends(get_db)):
-            with db.session() as session:
-                users = session.query(User).all()
-                return users
-        ```
-    """
-    return get_db_instance(DatabaseType.POSTGRESQL)
+   """
+   Dependency injection function for FastAPI to get a PostgreSQL database instance.
+   
+   Returns:
+       PostgreSQL database instance
+   
+   Example:
+       ```
+       @app.get("/users")
+       def get_users(db: PostgresDB = Depends(get_db)):
+           with db.session() as session:
+               users = session.query(User).all()
+               return users
+       ```
+   """
+   return get_db_instance(DatabaseType.POSTGRESQL)
 
 
 def get_timescale_db() -> TimescaleDB:
-    """
-    Dependency injection function for FastAPI to get a TimescaleDB database instance.
-    
-    Returns:
-        TimescaleDB database instance
-    """
-    return get_db_instance(DatabaseType.TIMESCALEDB)
+   """
+   Dependency injection function for FastAPI to get a TimescaleDB database instance.
+   
+   Returns:
+       TimescaleDB database instance
+   """
+   return get_db_instance(DatabaseType.TIMESCALEDB)
 
 
 def get_mongo_db() -> MongoDB:
-    """
-    Dependency injection function for FastAPI to get a MongoDB database instance.
-    
-    Returns:
-        MongoDB database instance
-    """
-    return get_db_instance(DatabaseType.MONGODB)
+   """
+   Dependency injection function for FastAPI to get a MongoDB database instance.
+   
+   Returns:
+       MongoDB database instance
+   """
+   return get_db_instance(DatabaseType.MONGODB)
 
 
 def get_redis_db() -> RedisDB:
-    """
-    Dependency injection function for FastAPI to get a Redis database instance.
-    
-    Returns:
-        Redis database instance
-    """
-    return get_db_instance(DatabaseType.REDIS)
+   """
+   Dependency injection function for FastAPI to get a Redis database instance.
+   
+   Returns:
+       Redis database instance
+   """
+   return get_db_instance(DatabaseType.REDIS)
 
 
 # Cache decorator for efficient function result caching
 # Modify your cache decorator to handle mock objects better
 def cache(ttl: int = None, key_prefix: str = None):
-    """
-    Decorator for caching function results in Redis.
-    
-    Args:
-        ttl: Cache time-to-live in seconds (None = use default)
-        key_prefix: Prefix for cache keys
-        
-    Returns:
-        Decorated function
-    """
-    def decorator(func):
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            # Get Redis instance
-            redis_db = get_db_instance(DatabaseType.REDIS)
-            
-            # Special handling for test mocks
-            if isinstance(redis_db, MagicMock):
-                # If get_json returns None (indicating cache miss), call original function
-                if redis_db.get_json.return_value is None:
-                    result = func(*args, **kwargs)
-                    # In tests, return the actual result instead of the mock.get_json
-                    return result
-                # Otherwise, return the mock's get_json return value
-                return redis_db.get_json()
-            
-            # Normal non-mock implementation
-            settings = get_settings()
-            
-            # Determine TTL
-            cache_ttl = ttl
-            if cache_ttl is None:
-                cache_ttl = settings.performance.CACHE_TTL_DEFAULT
-            
-            # Generate cache key
-            prefix = key_prefix or f"{func.__module__}.{func.__name__}"
-            
-            # Create simple key for testing purposes
-            cache_key = f"{prefix}:{str(args)}:{str(kwargs)}"
-            
-            # Try to get from cache
-            cached_value = redis_db.get_json(cache_key)
-            if cached_value is not None:
-                return cached_value
-            
-            # Call function
-            result = func(*args, **kwargs)
-            
-            # Store in cache
-            redis_db.set_json(cache_key, result, expiration=cache_ttl)
-            
-            return result
-        
-        return wrapper
-    
-    return decorator
+   """
+   Decorator for caching function results in Redis.
+   
+   Args:
+       ttl: Cache time-to-live in seconds (None = use default)
+       key_prefix: Prefix for cache keys
+       
+   Returns:
+       Decorated function
+   """
+   def decorator(func):
+       @wraps(func)
+       def wrapper(*args, **kwargs):
+           # Get Redis instance
+           redis_db = get_db_instance(DatabaseType.REDIS)
+           
+           # Special handling for test mocks
+           if isinstance(redis_db, MagicMock):
+               # If get_json returns None (indicating cache miss), call original function
+               if redis_db.get_json.return_value is None:
+                   result = func(*args, **kwargs)
+                   # In tests, return the actual result instead of the mock.get_json
+                   return result
+               # Otherwise, return the mock's get_json return value
+               return redis_db.get_json()
+           
+           # Normal non-mock implementation
+           settings = get_settings()
+           
+           # Determine TTL
+           cache_ttl = ttl
+           if cache_ttl is None:
+               cache_ttl = settings.performance.CACHE_TTL_DEFAULT
+           
+           # Generate cache key
+           prefix = key_prefix or f"{func.__module__}.{func.__name__}"
+           
+           # Create simple key for testing purposes
+           cache_key = f"{prefix}:{str(args)}:{str(kwargs)}"
+           
+           # Try to get from cache
+           cached_value = redis_db.get_json(cache_key)
+           if cached_value is not None:
+               return cached_value
+           
+           # Call function
+           result = func(*args, **kwargs)
+           
+           # Store in cache
+           redis_db.set_json(cache_key, result, expiration=cache_ttl)
+           
+           return result
+       
+       return wrapper
+   
+   return decorator

@@ -3,31 +3,32 @@ fastapi>=0.104.1
 uvicorn>=0.24.0
 python-multipart>=0.0.6
 pydantic>=2.4.2
+pydantic-settings>=2.1.0
 email-validator>=2.1.0
 
 # Database
 sqlalchemy>=2.0.23
-psycopg2-binary>=2.9.9  # PostgreSQL adapter
-asyncpg>=0.29.0  # Async PostgreSQL adapter
-alembic>=1.12.1  # Database migrations
+psycopg2-binary>=2.9.9    # PostgreSQL adapter
+asyncpg>=0.29.0           # Async PostgreSQL adapter
+alembic>=1.12.1           # Database migrations
 redis>=5.0.1
-aioredis>=2.0.1  # Async Redis
-motor>=3.0.0     # MongoDB async driver
-psycopg>=3.1.0   # Modern PostgreSQL driver
-psycopg-pool>=3.1.0  # Connection pooling for psycopg
+aioredis>=2.0.1           # Async Redis
+motor>=3.0.0              # MongoDB async driver
+psycopg>=3.1.0            # Modern PostgreSQL driver
+psycopg-pool>=3.1.0       # Connection pooling for psycopg
 
 # Security
-python-jose>=3.3.0
-passlib>=1.7.4
+python-jose[cryptography]>=3.3.0  # Added cryptography extra
+passlib[bcrypt]>=1.7.4           # Added bcrypt extra
 bcrypt>=4.0.1
 
 # Utilities
 python-dotenv>=1.0.0
-tenacity>=8.2.3  # For retries
-httpx>=0.25.1  # HTTP client
-ujson>=5.8.0  # Fast JSON
-kafka-python>=2.0.2  # Kafka client
-aiokafka>=0.8.1  # Async Kafka client
+tenacity>=8.2.3           # For retries
+httpx>=0.25.1             # HTTP client
+ujson>=5.8.0              # Fast JSON
+kafka-python>=2.0.2       # Kafka client
+aiokafka>=0.8.1           # Async Kafka client
 
 # Monitoring and logging
 prometheus-client>=0.17.1
@@ -38,18 +39,41 @@ structlog>=23.2.0
 pytest>=7.4.3
 pytest-asyncio>=0.21.1
 pytest-cov>=4.1.0
-httpx>=0.25.1
+pytest-mock>=3.12.0       # Added for mocking
+faker>=20.1.0             # Added for test data generation
 
 # Additional requirements for SQLAlchemy models
 SQLAlchemy-Utils>=0.41.1    # Provides useful data types and helpers
-alembic>=1.12.1             # Database migrations (you already have this)
 marshmallow>=3.20.1         # Object serialization/deserialization
 marshmallow-sqlalchemy>=0.30.0  # Integration between SQLAlchemy and Marshmallow
 sqlalchemy-filters>=0.13.0  # Dynamic filtering for SQLAlchemy queries
 python-dateutil>=2.8.2      # Better date/time handling
 validators>=0.22.0          # Input validation helpers
-pytest-postgresql>=5.0.0  # PostgreSQL testing fixtures for pytest
+pytest-postgresql>=5.0.0    # PostgreSQL testing fixtures for pytest
 
-pyyaml
-requests
-setuptools>=65.0.0
+# API and serialization
+pyyaml>=6.0.1
+requests>=2.31.0
+
+# Trading-specific (optional but recommended for a trading system)
+pandas>=2.1.3             # Data manipulation
+numpy>=1.26.2             # Numerical operations
+ta>=0.10.2                # Technical analysis library
+python-binance>=1.0.17    # Binance API (if using Binance)
+ccxt>=4.1.0              # Cryptocurrency exchange library
+
+# Development tools
+black>=23.11.0            # Code formatter
+ruff>=0.1.6              # Fast Python linter
+mypy>=1.7.0              # Type checking
+pre-commit>=3.5.0        # Git hooks
+
+# Additional utilities for production
+celery>=5.3.4            # Task queue
+flower>=2.0.1            # Celery monitoring
+gunicorn>=21.2.0         # Production WSGI server
+click>=8.1.7             # CLI utilities
+
+# For Supabase connection - cryptography is already handled by python-jose[cryptography]
+cryptography>=41.0.7      # For SSL/TLS support
+# REMOVED: ssl>=1.2.0    # This package is outdated and incompatible
