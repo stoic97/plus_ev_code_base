@@ -2,7 +2,7 @@
 Fyers Authentication Module
 
 This module handles authentication with the Fyers API, including token
-acquisition, validation, management and expiry monitoring.
+acquisition, validation, management and expiry monitoring using ORM models.
 """
 
 import logging
@@ -16,9 +16,13 @@ from urllib.parse import urlencode
 
 import aiohttp
 from pydantic import SecretStr
+from sqlalchemy.orm import Session
+from sqlalchemy.exc import SQLAlchemyError
 
 from app.providers.base.provider import AuthenticationError, ConnectionError, RateLimitError
 from app.providers.fyers.fyers_settings import FyersSettings
+from app.models.fyers_tokens import FyersToken
+from app.core.database import get_db
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -41,45 +45,28 @@ ERROR_INVALID_TOKEN = -15
 ERROR_AUTH_FAILED = -16
 ERROR_TOKEN_ERROR = -17
 
-# Database constants
-DB_TABLE_NAME = "fyers_tokens"
-DB_QUERY_SAVE = f"""
-INSERT INTO {DB_TABLE_NAME} (app_id, access_token, refresh_token, expiry)
-VALUES ($1, $2, $3, $4)
-ON CONFLICT (app_id) DO UPDATE SET
-    access_token = EXCLUDED.access_token,
-    refresh_token = EXCLUDED.refresh_token,
-    expiry = EXCLUDED.expiry,
-    updated_at = CURRENT_TIMESTAMP
-"""
-DB_QUERY_LOAD = f"""
-SELECT access_token, refresh_token, expiry 
-FROM {DB_TABLE_NAME} 
-WHERE app_id = $1
-"""
-
 
 class FyersAuth:
-    """Authentication handler for Fyers API."""
+    """Authentication handler for Fyers API using ORM models."""
     
-    def __init__(self, settings: FyersSettings, db_pool=None, discord_webhooks: List[str] = None):
+    def __init__(self, settings: FyersSettings, session_factory=None, discord_webhooks: List[str] = None):
         """
         Initialize Fyers authentication handler.
         
         Args:
             settings: Fyers-specific settings
-            db_pool: Optional database connection pool for token persistence
+            session_factory: Database session factory (defaults to get_db)
             discord_webhooks: Optional list of Discord webhook URLs for notifications
         """
         self.settings = settings
         self.access_token: Optional[str] = None
-        self.refresh_token: Optional[str] = None
+        self.refresh_token_value: Optional[str] = None  # Renamed to avoid conflict
         self.token_expiry: Optional[datetime] = None
         self._lock = asyncio.Lock()  # Thread safety for token operations
         self._session: Optional[aiohttp.ClientSession] = None
         
-        # Database connection for token persistence
-        self.db_pool = db_pool
+        # Database session factory
+        self.session_factory = session_factory or get_db
         
         # Discord webhook URLs for notifications
         self.discord_webhooks = discord_webhooks or []
@@ -95,15 +82,14 @@ class FyersAuth:
         Returns:
             True if successfully loaded a valid token, False otherwise
         """
-        # First try loading from database if available
-        if self.db_pool:
-            try:
-                loaded = await self.load_token_from_db()
-                if loaded and await self.has_valid_token():
-                    return True
-            except Exception as e:
-                logger.error(f"Error loading token from database: {e}")
-                
+        # First try loading from database
+        try:
+            loaded = await self.load_token_from_db()
+            if loaded and await self.has_valid_token():
+                return True
+        except Exception as e:
+            logger.error(f"Error loading token from database: {e}")
+            
         # If no token or invalid, use the one from settings if available
         if self.settings.ACCESS_TOKEN and not self.access_token:
             self.set_token_manually(self.settings.ACCESS_TOKEN.get_secret_value())
@@ -200,9 +186,8 @@ class FyersAuth:
                 
                 self._update_token_state(access_token, refresh_token, expiry)
                 
-                # Save token to database if available
-                if self.db_pool:
-                    await self.save_token_to_db()
+                # Save token to database
+                await self.save_token_to_db()
                 
                 logger.info(f"Successfully acquired access token, valid until {expiry}")
                 return True
@@ -210,11 +195,12 @@ class FyersAuth:
             except aiohttp.ClientError as e:
                 logger.error(f"Connection error during token acquisition: {e}")
                 raise ConnectionError(f"Failed to connect to Fyers auth service: {e}")
-            except Exception as e:
-                if not isinstance(e, (AuthenticationError, ConnectionError)):
-                    logger.error(f"Unexpected error during token acquisition: {e}", exc_info=True)
-                    raise AuthenticationError(f"Token acquisition failed: {e}")
+            except (RateLimitError, AuthenticationError):
+                # Re-raise these specific errors
                 raise
+            except Exception as e:
+                logger.error(f"Unexpected error during token acquisition: {e}", exc_info=True)
+                raise AuthenticationError(f"Token acquisition failed: {e}")
     
     async def validate_token(self, token: Optional[str] = None) -> bool:
         """
@@ -274,7 +260,7 @@ class FyersAuth:
         
         return True
     
-    async def refresh_token(self) -> bool:
+    async def refresh_token_async(self) -> bool:
         """
         Refresh access token using refresh token or PIN.
         
@@ -284,7 +270,7 @@ class FyersAuth:
         Raises:
             AuthenticationError: If refresh fails
         """
-        if not self.refresh_token:
+        if not self.refresh_token_value:
             logger.warning("No refresh token available, cannot refresh")
             return False
         
@@ -295,7 +281,7 @@ class FyersAuth:
             data = {
                 "grant_type": REFRESH_GRANT_TYPE,
                 "appIdHash": self.settings.generate_app_id_hash(),
-                "refresh_token": self.refresh_token
+                "refresh_token": self.refresh_token_value
             }
             
             # Add PIN if available
@@ -322,11 +308,10 @@ class FyersAuth:
             if not expiry:
                 expiry = datetime.now() + timedelta(hours=24)
             
-            self._update_token_state(access_token, self.refresh_token, expiry)
+            self._update_token_state(access_token, self.refresh_token_value, expiry)
             
-            # Save token to database if available
-            if self.db_pool:
-                await self.save_token_to_db()
+            # Save token to database
+            await self.save_token_to_db()
             
             logger.info(f"Successfully refreshed access token, valid until {expiry}")
             return True
@@ -350,16 +335,16 @@ class FyersAuth:
                 return True
             
             # If refresh token available, try to refresh
-            if self.refresh_token:
+            if self.refresh_token_value:
                 try:
-                    success = await self.refresh_token()
+                    success = await self.refresh_token_async()
                     if success:
                         return True
                 except Exception as e:
                     logger.error(f"Token refresh failed: {e}")
             
             # Load from database as last resort
-            if self.db_pool and not self.access_token:
+            if not self.access_token:
                 try:
                     if await self.load_token_from_db():
                         return await self.has_valid_token()
@@ -410,27 +395,35 @@ class FyersAuth:
         self._update_token_state(access_token, refresh_token, token_expiry)
         logger.info(f"Manually set access token, valid until {token_expiry}")
         
-        # Save to database if connection is available
-        if self.db_pool:
-            asyncio.create_task(self.save_token_to_db())
+        # Don't create async task in sync context - let caller handle saving
     
     async def clear_token(self) -> None:
         """Clear current token data."""
         async with self._lock:
             self.access_token = None
-            self.refresh_token = None
+            self.refresh_token_value = None
             self.token_expiry = None
             logger.info("Cleared token data")
             
-            # Remove from database if available
-            if self.db_pool:
-                try:
-                    async with self.db_pool.acquire() as conn:
-                        await conn.execute(f"DELETE FROM {DB_TABLE_NAME} WHERE app_id = $1", 
-                                          self.settings.APP_ID)
-                    logger.info(f"Removed token from database for {self.settings.APP_ID}")
-                except Exception as e:
-                    logger.error(f"Failed to remove token from database: {e}")
+            # Remove from database
+            try:
+                # Use sync database session in async context
+                def delete_token():
+                    session = next(self.session_factory())
+                    try:
+                        success = FyersToken.delete_token(session, self.settings.APP_ID)
+                        if success:
+                            logger.info(f"Removed token from database for {self.settings.APP_ID}")
+                        return success
+                    finally:
+                        session.close()
+                
+                # Run in thread pool to avoid blocking
+                loop = asyncio.get_event_loop()
+                await loop.run_in_executor(None, delete_token)
+                
+            except Exception as e:
+                logger.error(f"Failed to remove token from database: {e}")
     
     def get_token_info(self) -> Dict[str, Any]:
         """
@@ -441,7 +434,7 @@ class FyersAuth:
         """
         info = {
             "has_token": self.access_token is not None,
-            "has_refresh_token": self.refresh_token is not None,
+            "has_refresh_token": self.refresh_token_value is not None,
             "expiry": self.token_expiry,
             "is_valid": False
         }
@@ -476,54 +469,6 @@ class FyersAuth:
             logger.warning(f"Token will expire in {time_remaining}. Renewal required soon.")
             
         return time_remaining
-    
-    async def alert_if_expiring_soon(self, callback: Optional[Callable[[Dict[str, Any]], None]] = None) -> bool:
-        """
-        Check token expiration and alert if expiring soon.
-        
-        Args:
-            callback: Optional callback function to call with expiry information
-            
-        Returns:
-            True if token is expiring soon, False otherwise
-        """
-        time_remaining = await self.check_token_expiry()
-        
-        if not time_remaining:
-            error_message = "No valid token exists"
-            logger.error(error_message)
-            
-            # Send Discord alert if configured
-            if self.discord_webhooks:
-                await self.send_discord_alert(error_message, "error")
-            
-            if callback:
-                callback({"status": "error", "message": error_message})
-            return True
-        
-        expiry_threshold = timedelta(seconds=self.settings.TOKEN_RENEWAL_MARGIN)
-        
-        if time_remaining <= expiry_threshold:
-            message = f"Token will expire in {time_remaining}. Please renew."
-            logger.warning(message)
-            
-            # Send Discord alert if configured
-            if self.discord_webhooks:
-                auth_url = await self.get_auth_url()
-                detailed_message = f"**Token Expiry Alert**\n\n{message}\n\nExpiry: {self.token_expiry}\nApp ID: {self.settings.APP_ID}\n\nGenerate a new token here: {auth_url}"
-                await self.send_discord_alert(detailed_message, "warning")
-            
-            if callback:
-                callback({
-                    "status": "expiring",
-                    "message": message,
-                    "time_remaining": time_remaining.total_seconds(),
-                    "expiry": self.token_expiry.isoformat() if self.token_expiry else None,
-                    "auth_url": await self.get_auth_url()
-                })
-            return True
-            
-        return False
     
     async def send_discord_alert(self, message: str, level: str = "info") -> Dict[str, Any]:
         """
@@ -615,31 +560,38 @@ class FyersAuth:
     
     async def save_token_to_db(self) -> bool:
         """
-        Save current token data to database.
+        Save current token data to database using ORM.
         
         Returns:
             True if successful, False otherwise
         """
-        if not self.db_pool:
-            logger.warning("No database connection available, cannot save token")
-            return False
-            
         if not self.access_token or not self.token_expiry:
             logger.warning("No token data to save to database")
             return False
             
         try:
-            async with self.db_pool.acquire() as conn:
-                await conn.execute(
-                    DB_QUERY_SAVE, 
-                    self.settings.APP_ID,
-                    self.access_token,
-                    self.refresh_token,
-                    self.token_expiry
-                )
-                
-            logger.info(f"Saved token to database for {self.settings.APP_ID}")
-            return True
+            # Use sync database session in async context
+            def save_token():
+                session = next(self.session_factory())
+                try:
+                    success = FyersToken.save_token(
+                        session,
+                        self.settings.APP_ID,
+                        self.access_token,
+                        self.refresh_token_value,
+                        self.token_expiry
+                    )
+                    return success
+                finally:
+                    session.close()
+            
+            # Run in thread pool to avoid blocking
+            loop = asyncio.get_event_loop()
+            success = await loop.run_in_executor(None, save_token)
+            
+            if success:
+                logger.info(f"Saved token to database for {self.settings.APP_ID}")
+            return success
             
         except Exception as e:
             logger.error(f"Failed to save token to database: {e}")
@@ -647,30 +599,42 @@ class FyersAuth:
     
     async def load_token_from_db(self) -> bool:
         """
-        Load token data from database.
+        Load token data from database using ORM.
         
         Returns:
             True if successful, False otherwise
         """
-        if not self.db_pool:
-            logger.warning("No database connection available, cannot load token")
-            return False
-            
         try:
-            async with self.db_pool.acquire() as conn:
-                row = await conn.fetchrow(DB_QUERY_LOAD, self.settings.APP_ID)
-                
-            if not row:
+            # Use sync database session in async context
+            def load_token():
+                session = next(self.session_factory())
+                try:
+                    token = FyersToken.get_by_app_id(session, self.settings.APP_ID)
+                    if token and token.is_active:
+                        return {
+                            'access_token': token.access_token,
+                            'refresh_token': token.refresh_token,
+                            'expiry': token.expiry
+                        }
+                    return None
+                finally:
+                    session.close()
+            
+            # Run in thread pool to avoid blocking
+            loop = asyncio.get_event_loop()
+            token_data = await loop.run_in_executor(None, load_token)
+            
+            if not token_data:
                 logger.info(f"No token found in database for {self.settings.APP_ID}")
                 return False
                 
             self._update_token_state(
-                row['access_token'],
-                row['refresh_token'],
-                row['expiry']
+                token_data['access_token'],
+                token_data['refresh_token'],
+                token_data['expiry']
             )
             
-            logger.info(f"Loaded token from database for {self.settings.APP_ID}, valid until {row['expiry']}")
+            logger.info(f"Loaded token from database for {self.settings.APP_ID}, valid until {token_data['expiry']}")
             return True
             
         except Exception as e:
@@ -723,7 +687,7 @@ class FyersAuth:
             expiry: Token expiry datetime
         """
         self.access_token = access_token
-        self.refresh_token = refresh_token
+        self.refresh_token_value = refresh_token
         self.token_expiry = expiry
     
     async def _make_auth_request(self, endpoint: str, data: Dict[str, Any]) -> Dict[str, Any]:
@@ -790,39 +754,3 @@ class FyersAuth:
                 safe_data[key] = '********'
         
         return safe_data
-    
-    @classmethod
-    async def create_token_table(cls, db_pool) -> bool:
-        """
-        Create the tokens database table if it doesn't exist.
-        
-        Args:
-            db_pool: Database connection pool
-            
-        Returns:
-            True if successful, False otherwise
-        """
-        create_table_sql = f"""
-        CREATE TABLE IF NOT EXISTS {DB_TABLE_NAME} (
-            id SERIAL PRIMARY KEY,
-            app_id VARCHAR(50) NOT NULL UNIQUE,
-            access_token TEXT NOT NULL,
-            refresh_token TEXT,
-            expiry TIMESTAMP NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-        """
-        
-        try:
-            async with db_pool.acquire() as conn:
-                await conn.execute(create_table_sql)
-                
-                # Add index for faster lookups
-                await conn.execute(f"CREATE INDEX IF NOT EXISTS idx_{DB_TABLE_NAME}_app_id ON {DB_TABLE_NAME}(app_id);")
-                
-            logger.info(f"Created or verified {DB_TABLE_NAME} table")
-            return True
-        except Exception as e:
-            logger.error(f"Failed to create token table: {e}")
-            return False
