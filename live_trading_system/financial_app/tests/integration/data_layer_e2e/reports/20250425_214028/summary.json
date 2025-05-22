@@ -1,0 +1,76 @@
+{
+  "test_id": "20250425_214028",
+  "start_time": "2025-04-25T21:40:29.826742",
+  "end_time": "2025-04-25T21:40:29.965535",
+  "duration_seconds": 0.138793,
+  "overall_status": "FAIL",
+  "tests": {
+    "Database Connection": {
+      "status": "PASS",
+      "timestamp": "2025-04-25T21:40:29.832740",
+      "details": "Connected to mock database"
+    },
+    "Data Insertion - AAPL": {
+      "status": "FAIL",
+      "timestamp": "2025-04-25T21:40:29.838741",
+      "details": "Error in mock data insertion verification for AAPL: TestReporter.record_test_result() got multiple values for argument 'details'"
+    },
+    "Timestamp Processing - AAPL": {
+      "status": "PASS",
+      "timestamp": "2025-04-25T21:40:29.844476",
+      "details": "Timestamps for AAPL are valid and properly ordered in mock data"
+    },
+    "Query Performance - AAPL": {
+      "status": "PASS",
+      "timestamp": "2025-04-25T21:40:29.854377",
+      "details": "All mock queries completed within acceptable time. Simple time range: 0.0500s (100 rows), Daily aggregation: 0.1200s (7 rows), Join query: 0.1800s (100 rows)"
+    },
+    "Data Integrity - AAPL": {
+      "status": "PASS",
+      "timestamp": "2025-04-25T21:40:29.862637",
+      "details": "All data integrity checks passed for AAPL in mock data"
+    },
+    "Data Insertion - MSFT": {
+      "status": "FAIL",
+      "timestamp": "2025-04-25T21:40:29.874910",
+      "details": "Error in mock data insertion verification for MSFT: TestReporter.record_test_result() got multiple values for argument 'details'"
+    },
+    "Timestamp Processing - MSFT": {
+      "status": "PASS",
+      "timestamp": "2025-04-25T21:40:29.882261",
+      "details": "Timestamps for MSFT are valid and properly ordered in mock data"
+    },
+    "Query Performance - MSFT": {
+      "status": "PASS",
+      "timestamp": "2025-04-25T21:40:29.898721",
+      "details": "All mock queries completed within acceptable time. Simple time range: 0.0500s (100 rows), Daily aggregation: 0.1200s (7 rows), Join query: 0.1800s (100 rows)"
+    },
+    "Data Integrity - MSFT": {
+      "status": "PASS",
+      "timestamp": "2025-04-25T21:40:29.905909",
+      "details": "All data integrity checks passed for MSFT in mock data"
+    },
+    "Data Insertion - BTC/USD": {
+      "status": "FAIL",
+      "timestamp": "2025-04-25T21:40:29.919954",
+      "details": "Error in mock data insertion verification for BTC/USD: TestReporter.record_test_result() got multiple values for argument 'details'"
+    },
+    "Timestamp Processing - BTC/USD": {
+      "status": "PASS",
+      "timestamp": "2025-04-25T21:40:29.927938",
+      "details": "Timestamps for BTC/USD are valid and properly ordered in mock data"
+    },
+    "Query Performance - BTC/USD": {
+      "status": "PASS",
+      "timestamp": "2025-04-25T21:40:29.935894",
+      "details": "All mock queries completed within acceptable time. Simple time range: 0.0500s (100 rows), Daily aggregation: 0.1200s (7 rows), Join query: 0.1800s (100 rows)"
+    },
+    "Data Integrity - BTC/USD": {
+      "status": "PASS",
+      "timestamp": "2025-04-25T21:40:29.954133",
+      "details": "All data integrity checks passed for BTC/USD in mock data"
+    }
+  },
+  "performance_metrics": {},
+  "error_summary": []
+}

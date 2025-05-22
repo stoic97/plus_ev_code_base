@@ -1,0 +1,71 @@
+{
+  "test_id": "20250424_121502",
+  "start_time": "2025-04-24T12:15:02.031118",
+  "end_time": "2025-04-24T12:15:18.473627",
+  "duration_seconds": 16.442509,
+  "overall_status": "PASS",
+  "tests": {
+    "Login Flow": {
+      "status": "PASS",
+      "timestamp": "2025-04-24T12:15:06.131805",
+      "details": {
+        "response_time_ms": 50,
+        "token_received": true,
+        "token_format_valid": true,
+        "using_mock": true
+      }
+    },
+    "Rate Limiting": {
+      "status": "PASS",
+      "timestamp": "2025-04-24T12:15:14.336734",
+      "details": {
+        "total_requests": 20,
+        "rate_limited_count": 10,
+        "successful_count": 10,
+        "rate_limited_percentage": 50.0,
+        "using_mock": true
+      }
+    },
+    "Market Data Authorization": {
+      "status": "PASS",
+      "timestamp": "2025-04-24T12:15:18.441901",
+      "details": {
+        "valid_token_status": 200,
+        "no_token_status": 401,
+        "invalid_token_status": 401,
+        "valid_token_response_time_ms": 2068.319640159607,
+        "using_mock": true
+      }
+    },
+    "API Token Documentation": {
+      "status": "PASS",
+      "timestamp": "2025-04-24T12:15:18.461903",
+      "details": {
+        "token_file": "D:\\e backup\\web development\\plusEv\\plusEV_code_base\\plus_ev_code_base\\live_trading_system\\financial_app\\tests\\integration\\data_layer_e2e\\reports\\20250424_121501\\auth_token.txt",
+        "env_file": "D:\\e backup\\web development\\plusEv\\plusEV_code_base\\plus_ev_code_base\\live_trading_system\\financial_app\\tests\\integration\\data_layer_e2e\\reports\\20250424_121501\\auth_token.env",
+        "using_mock": false
+      }
+    }
+  },
+  "performance_metrics": {
+    "login_response_time_ms": [
+      {
+        "timestamp": "2025-04-24T12:15:06.128674",
+        "value": 50
+      }
+    ],
+    "market_data_response_time_ms": [
+      {
+        "timestamp": "2025-04-24T12:15:14.332571",
+        "value": 35
+      }
+    ],
+    "auth_valid_token_ms": [
+      {
+        "timestamp": "2025-04-24T12:15:18.435267",
+        "value": 2068.319640159607
+      }
+    ]
+  },
+  "error_summary": []
+}
