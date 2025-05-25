@@ -11,11 +11,55 @@ import asyncio
 from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple, Union, TypeVar, Generic, Callable
+from typing import Any, Dict, List, Optional, Set, Tuple, Union, TypeVar, Generic, Callable, Protocol, runtime_checkable
 from functools import wraps
 
 # Import provider settings
 from app.providers.config.provider_settings import BaseProviderSettings
+
+@runtime_checkable
+class MarketServiceProtocol(Protocol):
+    """Protocol defining the interface for market services."""
+    
+    def is_market_open(self) -> bool:
+        """Check if the market is currently open."""
+        ...
+    
+    def get_market_state(self) -> str:
+        """Get the current market state."""
+        ...
+    
+    def get_trading_hours(self) -> Dict[str, Any]:
+        """Get the trading hours information."""
+        ...
+    
+    def get_market_holidays(self) -> List[datetime]:
+        """Get the list of market holidays."""
+        ...
+
+class NoOpMarketService:
+    """A no-operation implementation of MarketServiceProtocol."""
+    
+    def is_market_open(self) -> bool:
+        """Always return True."""
+        return True
+    
+    def get_market_state(self) -> str:
+        """Always return 'open'."""
+        return "open"
+    
+    def get_trading_hours(self) -> Dict[str, Any]:
+        """Return dummy trading hours."""
+        return {
+            "open": "09:15",
+            "close": "15:30",
+            "pre_market": "09:00",
+            "post_market": "15:45"
+        }
+    
+    def get_market_holidays(self) -> List[datetime]:
+        """Return empty list of holidays."""
+        return []
 
 # Error classes - these will be moved to a dedicated module later
 class ProviderError(Exception):

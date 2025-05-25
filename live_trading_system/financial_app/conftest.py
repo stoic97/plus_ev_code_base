@@ -127,10 +127,15 @@ def db_session_env():
 
 # ==================== Migration Testing Fixtures ====================
 
-@pytest.fixture(scope="session")
-def event_loop():
+@pytest.fixture(scope="function")
+def event_loop_policy():
+    """Return an event loop policy for testing."""
+    return asyncio.get_event_loop_policy()
+
+@pytest.fixture(scope="function")
+def event_loop(event_loop_policy):
     """Create an instance of the default event loop for each test case."""
-    loop = asyncio.get_event_loop_policy().new_event_loop()
+    loop = event_loop_policy.new_event_loop()
     yield loop
     loop.close()
 

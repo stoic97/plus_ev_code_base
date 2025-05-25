@@ -72,8 +72,10 @@ class FyersAuth:
         self.discord_webhooks = discord_webhooks or []
         
         # Initialize from settings if token is provided
-        if settings.ACCESS_TOKEN and settings.ACCESS_TOKEN.get_secret_value():
-            self.set_token_manually(settings.ACCESS_TOKEN.get_secret_value())
+        if settings.ACCESS_TOKEN:
+            token_value = settings.ACCESS_TOKEN.get_secret_value() if isinstance(settings.ACCESS_TOKEN, SecretStr) else settings.ACCESS_TOKEN
+            if token_value:
+                self.set_token_manually(token_value)
     
     async def initialize(self) -> bool:
         """
