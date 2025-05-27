@@ -4,8 +4,9 @@ Market service protocols and interfaces.
 This module defines the protocols that market-related services must implement.
 """
 
-from typing import Protocol
+from typing import Protocol, runtime_checkable
 
+@runtime_checkable
 class MarketServiceProtocol(Protocol):
     """Protocol defining the interface for market service implementations."""
     
