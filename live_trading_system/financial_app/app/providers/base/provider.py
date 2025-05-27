@@ -16,6 +16,7 @@ from functools import wraps
 
 # Import provider settings
 from app.providers.config.provider_settings import BaseProviderSettings
+from app.services.market.protocols import MarketServiceProtocol
 
 # Error classes - these will be moved to a dedicated module later
 class ProviderError(Exception):

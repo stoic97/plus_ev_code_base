@@ -21,7 +21,8 @@ from .fyers_ws_protocol import (
 from .fyers_ws_manager import WebSocketConnectionManager
 from .fyers_auth import FyersAuth
 from .fyers_settings import FyersSettings
-from ..base.provider import MarketServiceProtocol, NoOpMarketService
+from .fyers_rest_client import NoOpMarketService
+from ..base.provider import MarketServiceProtocol
 from ..base.cache import MarketAwareStrategicCache
 
 # Setup logging

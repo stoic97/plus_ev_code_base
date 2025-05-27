@@ -9,6 +9,7 @@ import pytest_asyncio
 import asyncio
 from unittest.mock import Mock, AsyncMock, patch, MagicMock
 from datetime import datetime, timezone
+from pydantic import SecretStr
 
 from app.providers.fyers.fyers_ws_client import FyersWebSocketClient
 from app.providers.fyers.fyers_ws_protocol import (
@@ -33,7 +34,7 @@ def mock_settings():
     """Mock Fyers settings."""
     settings = Mock(spec=FyersSettings)
     settings.API_BASE_URL = "https://api.fyers.in/api/v2"
-    settings.ACCESS_TOKEN = "test_token"
+    settings.ACCESS_TOKEN = SecretStr("test_token")
     return settings
 
 

@@ -14,7 +14,10 @@ from datetime import datetime
 class WebSocketMessageType(str, Enum):
     """WebSocket message types."""
     SYMBOL_FEED = "sf"
-    DEPTH_FEED = "df"
+    INDEX_FEED = "if"
+    DEPTH = "dp"
+    CONNECTION = "cn"
+    SUBSCRIBE = "sub"
     ORDER_UPDATE = "ou"
     TRADE_UPDATE = "tu"
     POSITION_UPDATE = "pu"
@@ -177,12 +180,21 @@ class MarketDepthUpdate:
 
 
 class WebSocketError(Exception):
-    """WebSocket error with code and message."""
+    """WebSocket error with code, message, and timestamp."""
     
-    def __init__(self, code: int, message: str):
+    def __init__(self, code: int, message: str, timestamp: Optional[datetime] = None):
         self.code = code
         self.message = message
+        self.timestamp = timestamp or datetime.now()
         super().__init__(f"WebSocket error {code}: {message}")
+    
+    @classmethod
+    def from_message(cls, message: Dict[str, Any]) -> "WebSocketError":
+        """Create error from WebSocket message."""
+        code = message.get("code", 0)
+        error_message = message.get("message", "Unknown error")
+        timestamp = datetime.fromtimestamp(message.get("timestamp", 0)) if "timestamp" in message else None
+        return cls(code=code, message=error_message, timestamp=timestamp)
 
 
 # Type definitions

@@ -1,4 +1,10 @@
-# app/services/fyers_client.py
+"""
+Fyers API client implementation.
+
+This module provides a low-level client for interacting with the Fyers API,
+handling authentication, market data requests, and WebSocket connections.
+"""
+
 import yaml
 import logging
 import requests
@@ -193,4 +199,4 @@ class FyersClient:
         # 3. Handle incoming data and connection management
         
         logger.info(f"Subscribing to market data for symbols: {symbols}")
-        return True  # Placeholder
+        return True  # Placeholder 
