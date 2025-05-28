@@ -10,7 +10,9 @@ from fastapi import APIRouter
 from app.api.v1.router import api_router as api_v1_router
 
 # Main API router
-api_router = APIRouter()
+api_router = APIRouter(prefix="/api/v1")
+
+
 
 # Include versioned routers
 api_router.include_router(api_v1_router)
