@@ -33,21 +33,16 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-# Dependency functions
 def get_strategy_service(
-    db: Session = Depends(get_postgres_db)
+    db = Depends(get_postgres_db)
 ) -> StrategyEngineService:
     """
     Dependency to create StrategyEngineService instance.
-    
-    Args:
-        db: Database session from dependency injection
-        
-    Returns:
-        StrategyEngineService instance
     """
     try:
-        return StrategyEngineService(db.session())
+        # Get the actual session from the context manager
+        with db.session() as session:
+            return StrategyEngineService(session)
     except Exception as e:
         logger.error(f"Failed to create StrategyEngineService: {e}")
         raise DatabaseConnectionError("Unable to connect to database service")

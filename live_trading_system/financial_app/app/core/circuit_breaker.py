@@ -16,6 +16,7 @@ import logging
 import time
 from datetime import datetime, timedelta
 from enum import Enum
+from app.core.error_handling import track_error 
 from typing import Any, Callable, Dict, List, Optional, TypeVar, cast
 
 from app.core.error_handling import AppError, ErrorCategory, ErrorSeverity, track_error

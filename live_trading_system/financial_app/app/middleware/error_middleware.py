@@ -13,6 +13,7 @@ from typing import Dict, Any
 from fastapi import Request, Response
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
+from app.core.error_handling import track_error
 from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR
 
 from app.core.error_handling import AppError, ErrorCategory, ErrorTracker
