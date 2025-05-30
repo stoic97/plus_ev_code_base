@@ -5,12 +5,15 @@ Authentication endpoints for user login, registration, and token management.
 from datetime import datetime, timedelta
 from typing import Optional
 import re
+import asyncio
+import time
 
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
+from sqlalchemy.sql import text
 
 from ....core.config import settings
-from ....core.database import PostgresDB, get_db
+from ....core.database import PostgresDB, get_db, DatabaseType, db_session
 from ....core.security import (
     User,
     Token,
@@ -35,15 +38,74 @@ from ....schemas.auth import (
     TokenResponse,
     UserResponse,
 )
+
+from ....monitoring.performance_tracker import track_performance
+
 import logging
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,  # Change to INFO level to see more logs
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
+@router.get("/test-performance")
+@track_performance()
+async def test_performance(request: Request, db: PostgresDB = Depends(get_db)):
+    """
+    Test endpoint to verify performance tracking.
+    Simulates a slow API call and directly verifies metric storage.
+    """
+    logger.info("Starting test performance endpoint")
+    
+    # Simulate some work
+    await asyncio.sleep(2)
+    
+    # Verify the metrics table exists
+    try:
+        with db_session(DatabaseType.POSTGRESQL) as session:
+            # Check if table exists
+            table_exists = session.execute(
+                text("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'api_performance_metrics')")
+            ).scalar()
+            
+            if not table_exists:
+                logger.error("api_performance_metrics table does not exist!")
+                raise HTTPException(
+                    status_code=500,
+                    detail="Performance metrics table not found"
+                )
+            
+            # Get record count
+            count = session.execute(
+                text("SELECT COUNT(*) FROM api_performance_metrics")
+            ).scalar()
+            
+            logger.info(f"Current record count in api_performance_metrics: {count}")
+            
+            return {
+                "message": "Performance test completed",
+                "table_exists": True,
+                "current_record_count": count,
+                "endpoint": request.url.path,
+                "method": request.method
+            }
+            
+    except Exception as e:
+        logger.error(f"Error in test endpoint: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error testing performance metrics: {str(e)}"
+        )
+
 # Get database instance
 # db = PostgresDB()
 
-
+@track_performance()
 @router.post("/token", response_model=TokenResponse)
 async def login_for_access_token(
     request: Request,
@@ -89,32 +151,14 @@ async def login_for_access_token(
         scopes=user.roles  # Using roles as scopes
     )
 
-
+@track_performance()
 @router.post("/login", response_model=LoginResponse)
 async def login(
     request: Request,
     form_data: OAuth2PasswordRequestForm = Depends(),
     db_session: PostgresDB = Depends(get_db)
 ):
-    """
-    Login endpoint with more detailed response.
-    
-    Args:
-        request: Request object
-        form_data: OAuth2 password request form
-        db_session: Database session
-        
-    Returns:
-        User information and access token
-        
-    Raises:
-        HTTPException: If authentication fails
-    """
-    print("="*50)
-    print("🔥 LOGIN ENDPOINT REACHED!")
-    print(f"Username: {form_data.username}")
-    print(f"Password length: {len(form_data.password)}")
-    print("="*50)
+    """Login endpoint with performance tracking."""
     
     user = authenticate_user(db_session, form_data.username, form_data.password)
     if not user:
@@ -124,25 +168,23 @@ async def login(
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    # Create tokens
     access_token = create_access_token(
         data={"sub": user.username, "roles": user.roles}
     )
     
-    # Map to our login response model
     return LoginResponse(
         user=UserResponse(
             username=user.username,
             email=user.email,
             full_name=user.full_name,
-            scopes=user.roles,  # Using roles as scopes
+            scopes=user.roles,
         ),
         access_token=access_token,
         token_type="bearer",
         expires_at=datetime.utcnow() + timedelta(minutes=settings.security.ACCESS_TOKEN_EXPIRE_MINUTES)
     )
 
-
+@track_performance()
 @router.post("/refresh", response_model=TokenResponse)
 async def refresh_token(
     request: Request,
@@ -185,6 +227,7 @@ async def refresh_token(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+@track_performance()
 @router.post("/register", response_model=RegisterResponse)
 async def register(
     request: Request,
@@ -194,58 +237,44 @@ async def register(
     """
     Register a new user with comprehensive validation.
     """
-    try:
-        # First, let Pydantic validate basic requirements
-        # The schema will already check min length, email format, etc.
-        
-        # Perform additional custom password strength check
-        if not verify_password_strength(register_request.password):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=(
-                    "Password does not meet complexity requirements. "
-                    "Must contain uppercase, lowercase, numbers, and special characters. "
-                    "Minimum length is 12 characters."
-                )
+    # First, let Pydantic validate basic requirements
+    # The schema will already check min length, email format, etc.
+    
+    # Perform additional custom password strength check
+    if not verify_password_strength(register_request.password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "Password does not meet complexity requirements. "
+                "Must contain uppercase, lowercase, numbers, and special characters. "
+                "Minimum length is 12 characters."
             )
-        
-        # Existing user creation logic
-        success = create_user(
-            db=db_session,
-            username=register_request.username,
-            email=register_request.email,
-            password=register_request.password,
-            full_name=register_request.full_name,
-            roles=[Roles.OBSERVER]
-        )
-        
-        if not success:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="User registration failed. Username or email might already exist."
-            )
-        
-        return RegisterResponse(
-            username=register_request.username,
-            email=register_request.email,
-            success=True,
-            message="User registered successfully"
         )
     
-    except Exception as e:
-        # Log the error for debugging
-        logger.error(f"Registration error: {str(e)}")
-        
-        # Re-raise with appropriate status code
-        if isinstance(e, HTTPException):
-            raise
-        else:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="An unexpected error occurred during registration"
-            )
+    # Existing user creation logic
+    success = create_user(
+        db=db_session,
+        username=register_request.username,
+        email=register_request.email,
+        password=register_request.password,
+        full_name=register_request.full_name,
+        roles=[Roles.OBSERVER]
+    )
+    
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User registration failed. Username or email might already exist."
+        )
+    
+    return RegisterResponse(
+        username=register_request.username,
+        email=register_request.email,
+        success=True,
+        message="User registered successfully"
+    )
 
-
+@track_performance()
 @router.post("/logout")
 async def logout(
     request: Request,
@@ -277,6 +306,7 @@ async def logout(
             detail="Logout failed"
         )
 
+@track_performance()
 @router.get("/me", response_model=UserResponse)
 async def get_user_me(
     current_user: User = Depends(get_current_active_user)
@@ -291,6 +321,7 @@ async def get_user_me(
         scopes=current_user.roles
     )
 
+@track_performance()
 @router.post("/password-reset-request")
 async def request_password_reset(
     request: Request,
