@@ -1,4 +1,0 @@
-timestamp,metric,value
-2025-04-24T12:15:06.128674,login_response_time_ms,50
-2025-04-24T12:15:14.332571,market_data_response_time_ms,35
-2025-04-24T12:15:18.435267,auth_valid_token_ms,2068.319640159607

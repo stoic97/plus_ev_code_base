@@ -3,68 +3,89 @@ import sys
 from logging.config import fileConfig
 
 from alembic import context
-from sqlalchemy import engine_from_config, pool
+from sqlalchemy import engine_from_config, pool, text
+from sqlalchemy.engine.url import make_url
 
 # Add the project root directory to Python path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../../')))
 
 # Import models and Base
 from app.core.database import Base
 from app.core.config import get_settings
-from app.models import *  # noqa: Import all models to ensure they're registered with Base
+from app.models import *  # Import all models to ensure they're registered
 
 # Read in the configuration
 config = context.config
 settings = get_settings()
 
-# Inject environment variables into config
-section = config.config_ini_section
-config.set_section_option(section, "POSTGRES_USER", settings.db.POSTGRES_USER)
-config.set_section_option(section, "POSTGRES_PASSWORD", settings.db.POSTGRES_PASSWORD)
-config.set_section_option(section, "POSTGRES_SERVER", settings.db.POSTGRES_SERVER)
-config.set_section_option(section, "POSTGRES_PORT", settings.db.POSTGRES_PORT)
-config.set_section_option(section, "POSTGRES_DB", settings.db.POSTGRES_DB)
-
-# TimescaleDB settings
-config.set_section_option(section, "TIMESCALE_USER", settings.db.TIMESCALE_USER)
-config.set_section_option(section, "TIMESCALE_PASSWORD", settings.db.TIMESCALE_PASSWORD)
-config.set_section_option(section, "TIMESCALE_SERVER", settings.db.TIMESCALE_SERVER)
-config.set_section_option(section, "TIMESCALE_PORT", settings.db.TIMESCALE_PORT)
-config.set_section_option(section, "TIMESCALE_DB", settings.db.TIMESCALE_DB)
-
-# Interpret the config file for logging
-fileConfig(config.config_file_name)
-
 # Set up target metadata
 target_metadata = Base.metadata
 
-# Database selection based on revision tag
-database_selection = {
-    'postgres': config.get_main_option("sqlalchemy.url"),
-    'timescale': config.get_main_option("timescaledb.url")
-}
 
-# Custom function to determine which database to target based on revision tags
-def get_current_database():
+def get_postgres_url():
+    """Get PostgreSQL connection URL with proper priority."""
+    # Priority: Direct env var > Settings > Config file
+    
+    # 1. Check direct environment variable
+    direct_url = os.getenv('DB__POSTGRES_URI')
+    if direct_url:
+        print(f"Using direct PostgreSQL URI from environment")
+        return direct_url
+    
+    # 2. Build from settings
+    if settings and hasattr(settings, 'db'):
+        url = str(settings.db.POSTGRES_URI)
+        if url and url != 'None':
+            print(f"Using PostgreSQL URI from settings")
+            return url
+    
+    # 3. Fallback to config file
+    config_url = config.get_main_option("sqlalchemy.url")
+    if config_url:
+        print(f"Using PostgreSQL URI from alembic.ini")
+        return config_url
+    
+    raise ValueError("No PostgreSQL connection URL found in environment, settings, or config")
+
+
+def get_ssl_connect_args(url: str) -> tuple:
+    """Parse SSL arguments and return (connect_args, clean_url)."""
+    parsed_url = make_url(url)
+    connect_args = {}
+    
+    # Auto-detect SSL for Supabase
+    if 'supabase.co' in (parsed_url.host or ''):
+        connect_args['sslmode'] = 'require'
+    
+    # Handle SSL parameters in URL
+    if parsed_url.query:
+        query_params = dict(parsed_url.query)
+        
+        if 'sslmode' in query_params:
+            connect_args['sslmode'] = query_params.pop('sslmode')
+        
+        # Create clean URL without SSL params
+        parsed_url = parsed_url._replace(query=query_params)
+    
+    return connect_args, str(parsed_url)
+
+
+def is_schema_creating_migration():
+    """Check if this is a schema-creating migration."""
     try:
-        # Try to get the revision or autogenerate args
         cmd_opts = context.get_x_argument(as_dictionary=True)
-        return cmd_opts.get('database', 'postgres')
-    except AttributeError:
-        # If x argument is not available, return the default
-        return 'postgres'
+        revision = cmd_opts.get('revision', '')
+        
+        # Known schema-creating revisions
+        schema_revisions = ['91e93a42b21c', 'create_auth_schema']
+        return any(rev in str(revision) for rev in schema_revisions)
+    except:
+        return False
 
 
 def run_migrations_offline():
-    """Run migrations in 'offline' mode.
-
-    This configures the context with just a URL
-    and not an Engine, though an Engine is acceptable
-    as well.  By skipping the Engine creation
-    we don't even need a DBAPI to be available.
-    """
-    db_name = get_current_database()
-    url = database_selection[db_name]
+    """Run migrations in 'offline' mode."""
+    url = get_postgres_url()
     
     context.configure(
         url=url,
@@ -73,41 +94,60 @@ def run_migrations_offline():
         dialect_opts={"paramstyle": "named"},
         compare_type=True,
         include_schemas=True,
+        version_table='alembic_version_postgres',
     )
 
     with context.begin_transaction():
-        context.run_migrations(database=db_name)
+        context.run_migrations()
 
 
 def run_migrations_online():
-    """Run migrations in 'online' mode.
-
-    In this scenario we need to create an Engine
-    and associate a connection with the context.
-    """
-    db_name = get_current_database()
-    url = database_selection[db_name]
+    """Run migrations in 'online' mode."""
+    url = get_postgres_url()
+    connect_args, clean_url = get_ssl_connect_args(url)
     
+    # Build configuration
+    configuration = config.get_section(config.config_ini_section) or {}
+    configuration['sqlalchemy.url'] = clean_url
+    
+    # Create engine
     connectable = engine_from_config(
-        config.get_section(config.config_ini_section),
+        configuration,
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
-        url=url,
+        connect_args=connect_args,
     )
-
+    
+    # Pre-create schemas for schema-creating migrations
+    if is_schema_creating_migration():
+        print("Detected PostgreSQL schema-creating migration")
+        try:
+            with connectable.execution_options(isolation_level="AUTOCOMMIT").connect() as autocommit_conn:
+                print("Pre-creating extension and schema with autocommit")
+                autocommit_conn.execute(text('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"'))
+                autocommit_conn.execute(text('CREATE SCHEMA IF NOT EXISTS app_auth'))
+                print("Successfully pre-created extension and schema")
+        except Exception as e:
+            print(f"Error pre-creating schema: {e}")
+    
+    # Run migration
     with connectable.connect() as connection:
         context.configure(
-            connection=connection, 
+            connection=connection,
             target_metadata=target_metadata,
-            compare_type=True,
-            include_schemas=True,
+            version_table='alembic_version_postgres',
+            transaction_per_migration=False,
         )
-
+        
         with context.begin_transaction():
-            context.run_migrations(database=db_name)
+            context.run_migrations()
 
 
-if context.is_offline_mode():
-    run_migrations_offline()
-else:
-    run_migrations_online()
+def run_postgres_migrations():
+    """Main entry point for PostgreSQL migrations."""
+    print("Running PostgreSQL migrations...")
+    
+    if context.is_offline_mode():
+        run_migrations_offline()
+    else:
+        run_migrations_online()

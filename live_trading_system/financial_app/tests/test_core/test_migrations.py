@@ -14,7 +14,7 @@ from alembic.config import Config
 from datetime import datetime
 
 # Import the module to test
-from app.core.migration import (
+from financial_app.app.core.migrations import (
     MigrationManager,
     DatabaseMigrationError,
     init_migrations,

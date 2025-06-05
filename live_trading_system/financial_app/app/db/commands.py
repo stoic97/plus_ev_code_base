@@ -40,332 +40,185 @@ except ImportError:
 
 
 class MigrationManager:
-    """
-    Manages database migrations for different database engines.
-    
-    This class provides a unified interface for running migrations
-    on PostgreSQL and TimescaleDB, with clear error handling.
-    """
+    """Enhanced migration manager for multi-database architecture."""
     
     def __init__(self, database: str = "postgres"):
-        """
-        Initialize the migration manager for a specific database.
-        
-        Args:
-            database: The database to manage migrations for ('postgres' or 'timescale')
-        """
+        """Initialize with specific database target."""
         self.database = database
         self.settings = get_settings()
-        
-        # Get project root directory
         self.project_root = Path(__file__).parent.parent.parent
         
-        # Initialize Alembic config if available
-        self.config = self._get_alembic_config() if ALEMBIC_AVAILABLE else None
+        # Validate database choice
+        valid_databases = ['postgres', 'timescale']
+        if database not in valid_databases:
+            raise ValueError(f"Invalid database '{database}'. Must be one of: {valid_databases}")
+        
+        self.config = self._get_alembic_config()
     
     def _get_alembic_config(self) -> Optional[Config]:
-        """
-        Create an Alembic Config object for the current database.
-        
-        Returns:
-            Alembic Config object or None if Alembic not available
-        """
+        """Create database-specific Alembic Config."""
         if not ALEMBIC_AVAILABLE:
             return None
         
-        # Load environment variables from .env file
-        from dotenv import load_dotenv
-        import os
+        # Load environment variables
+        self._ensure_environment_variables()
         
-        # Try multiple locations for .env file
-        env_locations = [
-            self.project_root / '.env',
-            Path('.env')
-        ]
-        
-        env_loaded = False
-        for env_path in env_locations:
-            if env_path.exists():
-                load_dotenv(env_path)
-                env_loaded = True
-                logger.info(f"Loaded environment from {env_path}")
-                break
-        
-        if not env_loaded:
-            logger.warning("No .env file found in any expected location")
-        
-        # Get settings to ensure all environment variables are loaded
-        if self.settings:
-            # Set OS environment variables from settings for Alembic to use
-            os.environ['DB__POSTGRES_USER'] = self.settings.db.POSTGRES_USER
-            os.environ['DB__POSTGRES_PASSWORD'] = self.settings.db.POSTGRES_PASSWORD
-            os.environ['DB__POSTGRES_SERVER'] = self.settings.db.POSTGRES_SERVER
-            os.environ['DB__POSTGRES_PORT'] = str(self.settings.db.POSTGRES_PORT)
-            os.environ['DB__POSTGRES_DB'] = self.settings.db.POSTGRES_DB
-            os.environ['DB__POSTGRES_SSL_MODE'] = self.settings.db.SSL_MODE
-            
-            # Also set TimescaleDB variables
-            os.environ['DB__TIMESCALE_USER'] = self.settings.db.TIMESCALE_USER
-            os.environ['DB__TIMESCALE_PASSWORD'] = self.settings.db.TIMESCALE_PASSWORD
-            os.environ['DB__TIMESCALE_SERVER'] = self.settings.db.TIMESCALE_SERVER
-            os.environ['DB__TIMESCALE_PORT'] = str(self.settings.db.TIMESCALE_PORT)
-            os.environ['DB__TIMESCALE_DB'] = self.settings.db.TIMESCALE_DB
-            os.environ['DB__TIMESCALE_SSL_MODE'] = self.settings.db.SSL_MODE
-        
-        # Log for debugging
-        logger.info(f"Database configuration - Server: {os.environ.get('DB__POSTGRES_SERVER')}, DB: {os.environ.get('DB__POSTGRES_DB')}")
-        
-        # Path to the alembic.ini file
+        # Create config with database-specific script location
         alembic_ini = self.project_root / "alembic.ini"
         if not alembic_ini.exists():
             logger.warning(f"Alembic config file not found at {alembic_ini}")
             return None
         
-        # Create config object
         config = Config(str(alembic_ini))
         
-        # Create a mock namespace with the required 'x' attribute
+        # Set database-specific script location
+        if self.database == 'postgres':
+            script_location = "app/db/migrations/postgres"
+        elif self.database == 'timescale':
+            script_location = "app/db/migrations/timescale"
+        else:
+            script_location = "app/db/migrations"
+        
+        config.set_main_option("script_location", script_location)
+        
+        # Set database context for routing
         cmd_opts = argparse.Namespace()
-        cmd_opts.x = [f"database={self.database}"]  # This is what env.py might be looking for
-        
-        # Set the command options
+        cmd_opts.x = [f"database={self.database}"]
         config.cmd_opts = cmd_opts
-        
-        # Also set the database in config attributes for backward compatibility
         config.attributes['database'] = self.database
-        
-        # Set the script location based on database
-        scripts_dir = "app/db/migrations"
-        config.set_main_option("script_location", scripts_dir)
         
         return config
     
-    def upgrade(self, revision: str = "head") -> None:
-        """
-        Upgrade the database to the specified revision.
+    def _ensure_environment_variables(self):
+        """Ensure all required environment variables are set from settings."""
+        if not self.settings:
+            return
         
-        Args:
-            revision: The revision to upgrade to (default: 'head')
-        """
+        # Set environment variables for both databases
+        env_mappings = {
+            'DB__POSTGRES_USER': self.settings.db.POSTGRES_USER,
+            'DB__POSTGRES_PASSWORD': self.settings.db.POSTGRES_PASSWORD,
+            'DB__POSTGRES_SERVER': self.settings.db.POSTGRES_SERVER,
+            'DB__POSTGRES_PORT': str(self.settings.db.POSTGRES_PORT),
+            'DB__POSTGRES_DB': self.settings.db.POSTGRES_DB,
+            'DB__POSTGRES_URI': str(self.settings.db.POSTGRES_URI),
+            'DB__TIMESCALE_USER': self.settings.db.TIMESCALE_USER,
+            'DB__TIMESCALE_PASSWORD': self.settings.db.TIMESCALE_PASSWORD,
+            'DB__TIMESCALE_SERVER': self.settings.db.TIMESCALE_SERVER,
+            'DB__TIMESCALE_PORT': str(self.settings.db.TIMESCALE_PORT),
+            'DB__TIMESCALE_DB': self.settings.db.TIMESCALE_DB,
+            'DB__TIMESCALE_URI': str(self.settings.db.TIMESCALE_URI),
+        }
+        
+        for env_var, value in env_mappings.items():
+            if value is not None and env_var not in os.environ:
+                os.environ[env_var] = value
+        
+        logger.debug(f"Environment variables configured for {self.database}")
+    
+    def upgrade(self, revision: str = "head") -> None:
+        """Upgrade with database-specific handling."""
         logger.info(f"Upgrading {self.database} database to revision {revision}")
         
-        if ALEMBIC_AVAILABLE and self.config:
-            command.upgrade(self.config, revision)
-        else:
+        if not ALEMBIC_AVAILABLE or not self.config:
             logger.warning("Alembic not available, simulating upgrade")
-    
-    def downgrade(self, revision: str) -> None:
-        """
-        Downgrade the database to the specified revision.
-        
-        Args:
-            revision: The revision to downgrade to
-        """
-        logger.info(f"Downgrading {self.database} database to revision {revision}")
-        
-        if ALEMBIC_AVAILABLE and self.config:
-            command.downgrade(self.config, revision)
-        else:
-            logger.warning("Alembic not available, simulating downgrade")
-    
-    def generate(self, message: str, autogenerate: bool = False) -> None:
-        """
-        Generate a new migration revision.
-        
-        Args:
-            message: The revision message
-            autogenerate: Whether to autogenerate the migration
-        """
-        logger.info(f"Generating new migration for {self.database} database: {message}")
-        
-        if ALEMBIC_AVAILABLE and self.config:
-            command.revision(
-                self.config,
-                message=message,
-                autogenerate=autogenerate
-            )
-        else:
-            logger.warning("Alembic not available, simulating revision generation")
-    
-    def current(self) -> str:
-        """
-        Get the current revision of the database.
-        
-        Returns:
-            Current revision identifier
-        """
-        if ALEMBIC_AVAILABLE and self.config:
-            # Import necessary modules
-            import os
-            from sqlalchemy import create_engine, text  # Add the text import
-            
-            # Get database URL from config
-            url = os.getenv(f'DB__{self.database.upper()}_URI')
-            if not url:
-                # Fall back to configuration
-                from sqlalchemy import engine_from_config
-                engine = engine_from_config(
-                    self.config.get_section(self.config.config_ini_section),
-                    prefix='sqlalchemy.'
-                )
-            else:
-                # Use direct URL
-                engine = create_engine(url)
-            
-            # Check version directly from database
-            try:
-                with engine.connect() as conn:
-                    # First try the specific database version table
-                    try:
-                        result = conn.execute(text(f"SELECT version_num FROM alembic_version_{self.database}"))
-                        version = result.scalar()
-                        if version:
-                            return version
-                    except:
-                        # Table doesn't exist or error occurred
-                        pass
-                    
-                    # Then try the generic version table
-                    try:
-                        result = conn.execute(text("SELECT version_num FROM alembic_version"))
-                        version = result.scalar()
-                        if version:
-                            return version
-                    except:
-                        # Table doesn't exist or error occurred
-                        pass
-                    
-                    # If nothing found, return None
-                    return "None"
-            except Exception as e:
-                logger.error(f"Error checking current version: {e}")
-                return "None"
-        else:
-            # Return mock data for tests
-            return "abc123"
-    
-    def history(self) -> List[Dict[str, Any]]:
-        """
-        Get the migration history.
-        
-        Returns:
-            List of revision dictionaries
-        """
-        if ALEMBIC_AVAILABLE and self.config:
-            # Initialize script directory
-            script_dir = ScriptDirectory.from_config(self.config)
-            
-            # Get all revisions
-            history = []
-            for revision in script_dir.walk_revisions():
-                history.append({
-                    "revision": revision.revision,
-                    "down_revision": revision.down_revision,
-                    "description": revision.doc,
-                    "created": datetime.fromtimestamp(revision.date).isoformat() if revision.date else None
-                })
-            
-            return history
-        else:
-            # Return mock data for tests
-            return [
-                {"revision": "abc123", "description": "first migration"},
-                {"revision": "def456", "description": "second migration"}
-            ]
-    
-    def stamp(self, revision: str) -> None:
-        """
-        Stamp the database with the specified revision without running migrations.
-        
-        Args:
-            revision: The revision to stamp the database with
-        """
-        logger.info(f"Stamping {self.database} database with revision {revision}")
-        
-        if ALEMBIC_AVAILABLE and self.config:
-            command.stamp(self.config, revision)
-        else:
-            logger.warning("Alembic not available, simulating stamp")
-    
-    def init_schemas(self) -> bool:
-        """
-        Initialize database schemas.
-        
-        Returns:
-            True if successful
-        """
-        logger.info(f"Initializing database schemas for {self.database}")
+            return
         
         try:
-            # For PostgreSQL and TimescaleDB, we can use Alembic to create tables
-            if self.database in ("postgres", "timescale"):
-                if ALEMBIC_AVAILABLE and self.config:
-                    # Check if we have any migrations
-                    if self.history():
-                        # Upgrade to latest
-                        self.upgrade("head")
-                    else:
-                        logger.warning(f"No migrations found for {self.database}")
-                        return True  # For tests
-                else:
-                    logger.warning("Alembic not available, simulating schema initialization")
-            # For MongoDB, we might need a different approach
-            elif self.database == "mongodb":
-                # MongoDB doesn't need schema initialization in the same way
-                pass
-                
-            return True
+            # Add revision context for schema detection
+            if hasattr(self.config, 'cmd_opts') and hasattr(self.config.cmd_opts, 'x'):
+                self.config.cmd_opts.x.append(f"revision={revision}")
+            
+            # Perform upgrade
+            command.upgrade(self.config, revision)
+            logger.info(f"Successfully upgraded {self.database} database to {revision}")
+            
         except Exception as e:
-            logger.error(f"Error initializing schemas: {e}")
-            return False
+            logger.error(f"Error during {self.database} upgrade: {e}")
+            
+            # Special handling for schema creation issues
+            if "already exists" in str(e).lower() and revision in ['91e93a42b21c', 'head']:
+                logger.info("Schema objects already exist, attempting to stamp database")
+                try:
+                    self.stamp(revision)
+                    logger.info(f"Successfully stamped {self.database} database")
+                except Exception as stamp_error:
+                    logger.error(f"Failed to stamp {self.database} database: {stamp_error}")
+            
+            raise
+    
+    def stamp(self, revision: str) -> None:
+        """Stamp the database with a specific revision without running migrations."""
+        if not ALEMBIC_AVAILABLE or not self.config:
+            logger.warning("Alembic not available, cannot stamp database")
+            return
+            
+        try:
+            command.stamp(self.config, revision)
+            logger.info(f"Successfully stamped {self.database} database with revision {revision}")
+        except Exception as e:
+            logger.error(f"Error stamping {self.database} database: {e}")
+            raise
+    
+    def current(self) -> str:
+        """Get current revision with database-specific version table."""
+        if not ALEMBIC_AVAILABLE or not self.config:
+            return "abc123"  # Mock for tests
+        
+        try:
+            # Get database URL
+            if self.database == 'postgres':
+                url = os.getenv('DB__POSTGRES_URI') or str(self.settings.db.POSTGRES_URI)
+                version_table = 'alembic_version_postgres'
+            elif self.database == 'timescale':
+                url = os.getenv('DB__TIMESCALE_URI') or str(self.settings.db.TIMESCALE_URI)
+                version_table = 'alembic_version_timescale'
+            else:
+                return "None"
+            
+            # Connect and check version
+            from sqlalchemy import create_engine
+            engine = create_engine(url)
+            
+            with engine.connect() as conn:
+                try:
+                    result = conn.execute(text(f"SELECT version_num FROM {version_table}"))
+                    version = result.scalar()
+                    return version if version else "None"
+                except Exception:
+                    # Version table doesn't exist
+                    return "None"
+                    
+        except Exception as e:
+            logger.error(f"Error checking current version for {self.database}: {e}")
+            return "None"
     
     def status(self) -> Dict[str, Any]:
-        """
-        Get database migration status.
+        """Get database-specific migration status."""
+        current_rev = self.current()
         
-        Returns:
-            Status dictionary
-        """
-        if ALEMBIC_AVAILABLE and self.config:
-            # Get current revision
-            current_rev = self.current()
-            
-            # Get latest revision
-            script_dir = ScriptDirectory.from_config(self.config)
-            head_rev = script_dir.get_current_head()
-            
-            # Calculate pending migrations
-            pending = []
-            if current_rev != head_rev and current_rev != "None":
-                # Get all revisions between current and head
-                for rev in script_dir.walk_revisions(current_rev, head_rev):
-                    pending.append({
-                        "revision": rev.revision,
-                        "description": rev.doc
-                    })
-            
-            # Determine status
-            status = "current"
-            if current_rev == "None":
-                status = "not_initialized"
-            elif pending:
-                status = "behind"
-            
-            return {
-                "database": self.database,
-                "current": current_rev,
-                "latest": head_rev,
-                "status": status,
-                "pending": pending
-            }
-        else:
-            # Return mock data for tests
-            return {
-                "current": "abc123",
-                "latest": "def456",
-                "status": "behind",
-                "pending": ["def456"]
-            }
+        try:
+            # Get the latest available revision from the script directory
+            if ALEMBIC_AVAILABLE and self.config:
+                from alembic.script import ScriptDirectory
+                script_dir = ScriptDirectory.from_config(self.config)
+                head_revision = script_dir.get_current_head()
+            else:
+                head_revision = "head"
+        except Exception as e:
+            logger.error(f"Error getting latest revision: {e}")
+            head_revision = "head"
+        
+        status_info = {
+            "database": self.database,
+            "current": current_rev,
+            "latest": head_revision,
+            "status": "current" if current_rev != "None" else "not_initialized",
+            "version_table": f"alembic_version_{self.database}",
+            "script_location": f"app/db/migrations/{self.database}"
+        }
+        
+        return status_info
 
 
 def db_upgrade(args):
