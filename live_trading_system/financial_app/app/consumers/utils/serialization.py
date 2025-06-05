@@ -2,13 +2,12 @@
 Message serialization/deserialization utilities.
 
 This module provides serialization and deserialization functions
-for Kafka messages using various formats (JSON, Avro, etc.).
+for Kinesis messages using various formats (JSON, Avro, etc.).
 """
 
 import json
 import logging
 from typing import Any, Dict, List, Optional, Union, Callable
-from confluent_kafka import Message
 from app.consumers.base.error import DeserializationError
 
 try:
@@ -30,12 +29,12 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 
-def deserialize_json(message: Message) -> Dict[str, Any]:
+def deserialize_json(record: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Deserialize a JSON message.
+    Deserialize a JSON message from Kinesis record.
     
     Args:
-        message: Kafka message with JSON payload
+        record: Kinesis record with JSON payload in 'Data' field
         
     Returns:
         Deserialized JSON object
@@ -43,30 +42,30 @@ def deserialize_json(message: Message) -> Dict[str, Any]:
     Raises:
         DeserializationError: If the message cannot be deserialized
     """
-    if not message.value():
-        raise DeserializationError("Empty message payload")
+    if not record.get('Data'):
+        raise DeserializationError("Empty record payload")
     
     try:
         # Decode bytes to string if necessary
-        if isinstance(message.value(), bytes):
-            payload = message.value().decode('utf-8')
+        if isinstance(record['Data'], bytes):
+            payload = record['Data'].decode('utf-8')
         else:
-            payload = message.value()
+            payload = record['Data']
             
         # Parse JSON
         return json.loads(payload)
     except UnicodeDecodeError as e:
-        raise DeserializationError(f"Failed to decode message payload: {e}")
+        raise DeserializationError(f"Failed to decode record payload: {e}")
     except json.JSONDecodeError as e:
         raise DeserializationError(f"Invalid JSON payload: {e}")
 
 
-def deserialize_avro(message: Message, schema: Optional[Union[str, Dict[str, Any]]] = None) -> Dict[str, Any]:
+def deserialize_avro(record: Dict[str, Any], schema: Optional[Union[str, Dict[str, Any]]] = None) -> Dict[str, Any]:
     """
-    Deserialize an Avro message.
+    Deserialize an Avro message from Kinesis record.
     
     Args:
-        message: Kafka message with Avro payload
+        record: Kinesis record with Avro payload in 'Data' field
         schema: Avro schema for deserialization (string or dict)
         
     Returns:
@@ -78,8 +77,8 @@ def deserialize_avro(message: Message, schema: Optional[Union[str, Dict[str, Any
     if not AVRO_AVAILABLE and not FASTAVRO_AVAILABLE:
         raise DeserializationError("Avro deserialization requires avro or fastavro package")
     
-    if not message.value():
-        raise DeserializationError("Empty message payload")
+    if not record.get('Data'):
+        raise DeserializationError("Empty record payload")
     
     try:
         # Try using fastavro first if available (much faster)
@@ -94,10 +93,10 @@ def deserialize_avro(message: Message, schema: Optional[Union[str, Dict[str, Any
             
             # Deserialize using fastavro
             if parsed_schema:
-                return next(fastavro.schemaless_reader(io.BytesIO(message.value()), parsed_schema))
+                return next(fastavro.schemaless_reader(io.BytesIO(record['Data']), parsed_schema))
             else:
                 # Try reading without schema
-                return next(fastavro.reader(io.BytesIO(message.value())))
+                return next(fastavro.reader(io.BytesIO(record['Data'])))
                 
         # Fall back to standard avro if fastavro not available
         elif AVRO_AVAILABLE:
@@ -111,7 +110,7 @@ def deserialize_avro(message: Message, schema: Optional[Union[str, Dict[str, Any
             
             # Create reader and decoder
             reader = DatumReader(parsed_schema)
-            decoder = BinaryDecoder(io.BytesIO(message.value()))
+            decoder = BinaryDecoder(io.BytesIO(record['Data']))
             
             # Read and return data
             return reader.read(decoder)
@@ -120,12 +119,12 @@ def deserialize_avro(message: Message, schema: Optional[Union[str, Dict[str, Any
         raise DeserializationError(f"Failed to deserialize Avro message: {e}")
 
 
-def deserialize_string(message: Message, encoding: str = 'utf-8') -> str:
+def deserialize_string(record: Dict[str, Any], encoding: str = 'utf-8') -> str:
     """
-    Deserialize a string message.
+    Deserialize a string message from Kinesis record.
     
     Args:
-        message: Kafka message with string payload
+        record: Kinesis record with string payload in 'Data' field
         encoding: Character encoding (default: utf-8)
         
     Returns:
@@ -134,35 +133,35 @@ def deserialize_string(message: Message, encoding: str = 'utf-8') -> str:
     Raises:
         DeserializationError: If the message cannot be deserialized
     """
-    if not message.value():
+    if not record.get('Data'):
         return ""
     
     try:
-        return message.value().decode(encoding)
+        return record['Data'].decode(encoding)
     except UnicodeDecodeError as e:
         raise DeserializationError(f"Failed to decode string message: {e}")
 
 
-def deserialize_bytes(message: Message) -> bytes:
+def deserialize_bytes(record: Dict[str, Any]) -> bytes:
     """
-    Return raw bytes payload.
+    Return raw bytes payload from Kinesis record.
     
     Args:
-        message: Kafka message
+        record: Kinesis record
         
     Returns:
         Raw bytes payload
         
     Raises:
-        DeserializationError: If the message payload is empty
+        DeserializationError: If the record payload is empty
     """
-    if not message.value():
-        raise DeserializationError("Empty message payload")
+    if not record.get('Data'):
+        raise DeserializationError("Empty record payload")
     
-    return message.value()
+    return record['Data']
 
 
-def get_deserializer(serialization_type: str) -> Callable[[Message], Any]:
+def get_deserializer(serialization_type: str) -> Callable[[Dict[str, Any]], Any]:
     """
     Get deserializer function based on serialization type.
     
@@ -189,7 +188,7 @@ def get_deserializer(serialization_type: str) -> Callable[[Message], Any]:
 
 def serialize_to_json(data: Any) -> bytes:
     """
-    Serialize data to JSON bytes.
+    Serialize data to JSON bytes for Kinesis.
     
     Args:
         data: Data to serialize
@@ -202,7 +201,7 @@ def serialize_to_json(data: Any) -> bytes:
 
 def serialize_to_string(data: str) -> bytes:
     """
-    Serialize string to bytes.
+    Serialize string to bytes for Kinesis.
     
     Args:
         data: String to serialize

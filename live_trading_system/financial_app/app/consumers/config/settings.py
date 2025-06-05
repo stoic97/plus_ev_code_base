@@ -211,3 +211,87 @@ def get_kafka_settings() -> KafkaSettings:
     if _kafka_settings_instance is None:
         _kafka_settings_instance = KafkaSettings()
     return _kafka_settings_instance
+
+"""
+Configuration settings for Kinesis consumers and producers.
+
+This module provides configuration settings for AWS Kinesis integration,
+including stream settings, AWS credentials, and monitoring configuration.
+"""
+
+class KinesisSettings(BaseSettings):
+    """
+    Configuration settings for Kinesis integration.
+    
+    This class provides configuration settings for AWS Kinesis streams,
+    including AWS credentials, region, and monitoring settings.
+    """
+    
+    # AWS Credentials
+    AWS_ACCESS_KEY_ID: str = Field(
+        default=os.getenv("AWS_ACCESS_KEY_ID", ""),
+        description="AWS access key ID"
+    )
+    AWS_SECRET_ACCESS_KEY: str = Field(
+        default=os.getenv("AWS_SECRET_ACCESS_KEY", ""),
+        description="AWS secret access key"
+    )
+    AWS_REGION: str = Field(
+        default=os.getenv("AWS_REGION", "us-east-1"),
+        description="AWS region name"
+    )
+    
+    # Stream Settings
+    STREAM_RETENTION_PERIOD_HOURS: int = Field(
+        default=24,
+        description="Stream data retention period in hours"
+    )
+    STREAM_SHARD_COUNT: int = Field(
+        default=1,
+        description="Number of shards in the stream"
+    )
+    
+    # Monitoring Settings
+    ENABLE_CLOUDWATCH_METRICS: bool = Field(
+        default=True,
+        description="Enable CloudWatch metrics"
+    )
+    ENABLE_CLOUDWATCH_LOGS: bool = Field(
+        default=True,
+        description="Enable CloudWatch logs"
+    )
+    
+    # Performance Settings
+    MAX_RECORDS_PER_REQUEST: int = Field(
+        default=10000,
+        description="Maximum number of records per GetRecords request"
+    )
+    MAX_BYTES_PER_REQUEST: int = Field(
+        default=10485760,  # 10 MB
+        description="Maximum bytes per GetRecords request"
+    )
+    
+    # Error Handling Settings
+    MAX_RETRIES: int = Field(
+        default=3,
+        description="Maximum number of retries for failed operations"
+    )
+    RETRY_DELAY_MS: int = Field(
+        default=1000,
+        description="Delay between retries in milliseconds"
+    )
+    
+    # Circuit Breaker Settings
+    CIRCUIT_BREAKER_FAILURE_THRESHOLD: int = Field(
+        default=5,
+        description="Number of failures before circuit breaker opens"
+    )
+    CIRCUIT_BREAKER_RECOVERY_TIMEOUT_MS: int = Field(
+        default=30000,
+        description="Time in milliseconds before circuit breaker attempts recovery"
+    )
+    
+    class Config:
+        """Pydantic model configuration."""
+        env_prefix = "KINESIS_"
+        case_sensitive = True

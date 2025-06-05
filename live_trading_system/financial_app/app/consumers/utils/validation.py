@@ -88,7 +88,7 @@ def validate_timestamp(timestamp: Any, field_name: str = 'timestamp') -> None:
     Validate a timestamp field.
     
     Args:
-        timestamp: Timestamp value to validate (epoch milliseconds or ISO format)
+        timestamp: Timestamp value to validate (datetime, epoch milliseconds, or ISO format)
         field_name: Name of the field for error messages
         
     Raises:
@@ -96,7 +96,10 @@ def validate_timestamp(timestamp: Any, field_name: str = 'timestamp') -> None:
     """
     try:
         # Handle different timestamp formats
-        if isinstance(timestamp, (int, float)):
+        if isinstance(timestamp, datetime):
+            # Already a datetime object, just validate the year
+            dt = timestamp
+        elif isinstance(timestamp, (int, float)):
             # Epoch timestamp (milliseconds or seconds)
             # If milliseconds (13 digits), convert to seconds
             if timestamp > 1e12:  # Assume milliseconds if very large
@@ -105,11 +108,6 @@ def validate_timestamp(timestamp: Any, field_name: str = 'timestamp') -> None:
             # Create datetime from epoch
             dt = datetime.fromtimestamp(timestamp)
             
-            # Sanity check: not in the distant past or future
-            now = datetime.now()
-            if dt.year < 2000 or dt.year > now.year + 1:
-                raise ValidationError(f"Field '{field_name}' has unreasonable date: {dt.year}")
-                
         elif isinstance(timestamp, str):
             # ISO format string
             try:
@@ -120,12 +118,13 @@ def validate_timestamp(timestamp: Any, field_name: str = 'timestamp') -> None:
                     dt = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S.%fZ")
                 except ValueError:
                     raise ValidationError(f"Field '{field_name}' has invalid datetime format: {timestamp}")
-                
-            now = datetime.now()
-            if dt.year < 2000 or dt.year > now.year + 1:
-                raise ValidationError(f"Field '{field_name}' has unreasonable date: {dt.year}")
         else:
             raise ValidationError(f"Field '{field_name}' has invalid type: {type(timestamp).__name__}")
+            
+        # Sanity check: not in the distant past or future
+        now = datetime.now()
+        if dt.year < 2000 or dt.year > now.year + 1:
+            raise ValidationError(f"Field '{field_name}' has unreasonable date: {dt.year}")
             
     except Exception as e:
         if isinstance(e, ValidationError):
@@ -214,24 +213,24 @@ def validate_orderbook_structure(orderbook: Dict[str, Any]) -> None:
     
     # Validate each bid and ask entry
     for i, bid in enumerate(orderbook['bids']):
-        if not isinstance(bid, list) or len(bid) < 2:
-            raise ValidationError(f"Invalid bid at index {i}: must be [price, volume] list")
-        validate_numeric_field(bid[0], 'bid_price')
-        validate_numeric_field(bid[1], 'bid_volume')
+        if not isinstance(bid, list) or len(bid) != 2:
+            raise ValidationError(f"Invalid bid at index {i}: must be exactly [price, volume] list")
+        validate_numeric_field(bid[0], 'bid_price', min_value=0, allow_zero=False)
+        validate_numeric_field(bid[1], 'bid_volume', min_value=0, allow_zero=False)
     
     for i, ask in enumerate(orderbook['asks']):
-        if not isinstance(ask, list) or len(ask) < 2:
-            raise ValidationError(f"Invalid ask at index {i}: must be [price, volume] list")
-        validate_numeric_field(ask[0], 'ask_price')
-        validate_numeric_field(ask[1], 'ask_volume')
+        if not isinstance(ask, list) or len(ask) != 2:
+            raise ValidationError(f"Invalid ask at index {i}: must be exactly [price, volume] list")
+        validate_numeric_field(ask[0], 'ask_price', min_value=0, allow_zero=False)
+        validate_numeric_field(ask[1], 'ask_volume', min_value=0, allow_zero=False)
     
-    # Check bid/ask ordering (optional)
+    # Check bid/ask ordering
     if orderbook['bids'] and orderbook['asks']:
         highest_bid = Decimal(str(orderbook['bids'][0][0]))
         lowest_ask = Decimal(str(orderbook['asks'][0][0]))
         
         if highest_bid >= lowest_ask:
-            logger.warning(f"Crossed order book: highest bid {highest_bid} >= lowest ask {lowest_ask}")
+            raise ValidationError(f"Crossed order book: highest bid {highest_bid} >= lowest ask {lowest_ask}")
 
 
 def validate_ohlcv_message(message: Dict[str, Any]) -> None:
