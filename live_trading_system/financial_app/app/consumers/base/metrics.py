@@ -7,11 +7,10 @@ consumer performance, including throughput, latency, and lag metrics.
 
 import time
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 import threading
 import statistics
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Any
 
 
 @dataclass
@@ -51,17 +50,15 @@ class ConsumerMetrics:
     _lock: threading.RLock = field(default_factory=threading.RLock)
 
     
-    def record_message_processed(self, size_bytes: int, processing_time_ms: float) -> None:
+    def record_message_processed(self, processing_time_ms: float) -> None:
         """
         Record metrics for a successfully processed message.
         
         Args:
-            size_bytes: Size of the message in bytes
             processing_time_ms: Time taken to process the message in milliseconds
         """
         with self._lock:
             self.messages_processed += 1
-            self.bytes_processed += size_bytes
             self.last_message_time = time.time()
             
             # Keep only recent processing times for moving averages
@@ -251,17 +248,14 @@ class ConsumerMetrics:
 
 
 class MetricsRegistry:
-    """
-    Registry for tracking metrics from multiple consumers.
-    
-    This class provides a centralized way to track and access metrics
-    from all consumer instances in the application.
-    """
+    """Registry for managing consumer metrics."""
     
     def __init__(self):
-        """Initialize the metrics registry."""
-        self._metrics: Dict[str, ConsumerMetrics] = {}
-        self._lock = threading.Lock()
+        """Initialize a new metrics registry."""
+        self._consumers: Dict[str, ConsumerMetrics] = {}
+        self._lock = threading.RLock()
+        self._counters: Dict[str, Dict[str, int]] = {}
+        self._histograms: Dict[str, Dict[str, List[float]]] = {}
     
     def register_consumer(self, consumer_id: str, topic: str, group_id: str) -> ConsumerMetrics:
         """
@@ -269,19 +263,18 @@ class MetricsRegistry:
         
         Args:
             consumer_id: Unique identifier for the consumer
-            topic: Kafka topic
+            topic: Topic being consumed
             group_id: Consumer group ID
             
         Returns:
             ConsumerMetrics instance for the consumer
         """
         with self._lock:
-            metrics = ConsumerMetrics(
-                consumer_id=consumer_id,
-                topic=topic,
-                group_id=group_id
-            )
-            self._metrics[consumer_id] = metrics
+            if consumer_id in self._consumers:
+                return self._consumers[consumer_id]
+                
+            metrics = ConsumerMetrics(consumer_id, topic, group_id)
+            self._consumers[consumer_id] = metrics
             return metrics
     
     def get_consumer_metrics(self, consumer_id: str) -> Optional[ConsumerMetrics]:
@@ -289,53 +282,86 @@ class MetricsRegistry:
         Get metrics for a specific consumer.
         
         Args:
-            consumer_id: Consumer identifier
+            consumer_id: Consumer ID to look up
             
         Returns:
             ConsumerMetrics instance or None if not found
         """
         with self._lock:
-            return self._metrics.get(consumer_id)
+            return self._consumers.get(consumer_id)
     
     def get_all_metrics(self) -> Dict[str, Dict[str, Any]]:
         """
-        Get metrics summaries for all registered consumers.
+        Get metrics for all registered consumers.
         
         Returns:
-            Dictionary mapping consumer IDs to metric summaries
+            Dictionary mapping consumer IDs to their metrics
         """
         with self._lock:
             return {
                 consumer_id: metrics.get_metrics_summary()
-                for consumer_id, metrics in self._metrics.items()
+                for consumer_id, metrics in self._consumers.items()
             }
     
     def get_all_metrics_by_topic(self) -> Dict[str, List[Dict[str, Any]]]:
         """
-        Get metrics summaries grouped by topic.
+        Get metrics grouped by topic.
         
         Returns:
-            Dictionary mapping topics to lists of metric summaries
+            Dictionary mapping topics to lists of consumer metrics
         """
         with self._lock:
-            result = {}
-            for metrics in self._metrics.values():
+            by_topic: Dict[str, List[Dict[str, Any]]] = {}
+            
+            for metrics in self._consumers.values():
                 topic = metrics.topic
-                if topic not in result:
-                    result[topic] = []
-                result[topic].append(metrics.get_metrics_summary())
-            return result
-
-
-# Global metrics registry
-metrics_registry = MetricsRegistry()
+                if topic not in by_topic:
+                    by_topic[topic] = []
+                by_topic[topic].append(metrics.get_metrics_summary())
+            
+            return by_topic
+    
+    def counter(self, name: str, labels: Dict[str, str] = None) -> None:
+        """
+        Increment a counter metric.
+        
+        Args:
+            name: Name of the counter
+            labels: Labels for the counter
+        """
+        with self._lock:
+            label_key = str(sorted((labels or {}).items()))
+            if name not in self._counters:
+                self._counters[name] = {}
+            if label_key not in self._counters[name]:
+                self._counters[name][label_key] = 0
+            self._counters[name][label_key] += 1
+    
+    def histogram(self, name: str, labels: Dict[str, str] = None, value: float = 1.0) -> None:
+        """
+        Record a value in a histogram metric.
+        
+        Args:
+            name: Name of the histogram
+            labels: Labels for the histogram
+            value: Value to record
+        """
+        with self._lock:
+            label_key = str(sorted((labels or {}).items()))
+            if name not in self._histograms:
+                self._histograms[name] = {}
+            if label_key not in self._histograms[name]:
+                self._histograms[name][label_key] = []
+            self._histograms[name][label_key].append(value)
 
 
 def get_metrics_registry() -> MetricsRegistry:
     """
-    Get the global metrics registry.
+    Get the global metrics registry instance.
     
     Returns:
-        Global metrics registry instance
+        MetricsRegistry instance
     """
-    return metrics_registry
+    if not hasattr(get_metrics_registry, '_instance'):
+        get_metrics_registry._instance = MetricsRegistry()
+    return get_metrics_registry._instance

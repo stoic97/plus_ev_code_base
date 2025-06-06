@@ -1,329 +1,88 @@
 """
 Order book data consumer for market data ingestion.
 
-This module provides a Kafka consumer for ingesting order book data
-from Kafka topics and storing it in the database.
+This module provides a Kinesis consumer for ingesting order book data
+from Kinesis streams and storing it in the database.
 """
 
 import logging
-import json
 import time
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Dict, Any, Optional, Callable
+from datetime import datetime
 
-from confluent_kafka import Message, Consumer
-
-from app.consumers.base.consumer import BaseConsumer
-from app.consumers.base.error import DeserializationError, ProcessingError, ValidationError
-from app.consumers.base.metrics import get_metrics_registry
-from app.consumers.config.settings import KafkaSettings
-from app.consumers.managers.offset_manager import OffsetManager
-from app.consumers.managers.health_manager import get_health_manager, HealthCheckConfig
-from app.consumers.utils.serialization import deserialize_json
+from app.consumers.base.kinesis_consumer import BaseKinesisConsumer
+from app.consumers.config.settings import KinesisSettings
 from app.consumers.utils.validation import validate_orderbook_message
-from app.consumers.utils.circuit_breaker import circuit_breaker
-
-from app.models.market_data import OrderBookSnapshot, Instrument
-from app.db.repositories.market_data_repository import MarketDataRepository
+from app.consumers.base.error import ProcessingError
 
 # Set up logging
 logger = logging.getLogger(__name__)
 
 
-class OrderBookConsumer(BaseConsumer):
+class OrderBookConsumer(BaseKinesisConsumer):
     """
-    Kafka consumer for order book data.
+    Consumer for processing orderbook data from Kinesis.
     
-    Consumes order book snapshots from a Kafka topic and stores them in the database
-    using the OrderBookSnapshot model.
+    This consumer handles the processing of orderbook data from a Kinesis stream,
+    including validation and callback handling for bid and ask orders.
     """
     
     def __init__(
         self,
-        topic: Optional[str] = None,
-        group_id: Optional[str] = None,
-        settings: Optional[KafkaSettings] = None,
-        batch_size: int = 20,  # Smaller batch size for larger orderbook messages
+        stream_name: str = "market-data-orderbook",
+        settings: Optional[KinesisSettings] = None,
+        region_name: Optional[str] = None,
+        batch_size: int = 100,
         batch_timeout_ms: int = 1000,
-        repository: Optional[MarketDataRepository] = None,
+        on_orderbook: Optional[Callable[[Dict[str, Any]], None]] = None
     ):
         """
-        Initialize a new order book consumer.
+        Initialize a new orderbook consumer.
         
         Args:
-            topic: Kafka topic to consume (defaults to ORDERBOOK_TOPIC from settings)
-            group_id: Consumer group ID (defaults to ORDERBOOK_GROUP_ID from settings)
-            settings: Kafka configuration settings
-            batch_size: Number of messages to process in a batch
+            stream_name: Name of the Kinesis stream
+            settings: Kinesis configuration settings
+            region_name: AWS region name
+            batch_size: Number of records to process in a batch
             batch_timeout_ms: Maximum time to wait for a full batch in ms
-            repository: Market data repository for database operations
+            on_orderbook: Callback function for processing orderbook messages
         """
-        self.settings = settings or KafkaSettings()
-        self.topic = topic or self.settings.ORDERBOOK_TOPIC
-        self.group_id = group_id or self.settings.ORDERBOOK_GROUP_ID
-        
-        # Initialize base consumer
-        super().__init__(
-            topic=self.topic,
-            group_id=self.group_id,
-            settings=self.settings,
-            auto_commit=self.settings.ENABLE_AUTO_COMMIT
-        )
-        
-        # Batch processing
-        self.batch_size = batch_size
-        self.batch_timeout_ms = batch_timeout_ms
-        self._batch: List[Dict[str, Any]] = []
-        self._batch_start_time = time.time() * 1000
-        
-        # Repository for database operations
-        self.repository = repository or MarketDataRepository()
-        
-        # Set up offset manager
-        self.offset_manager = OffsetManager(
-            consumer=self._consumer,
-            auto_commit=self.settings.ENABLE_AUTO_COMMIT,
-            commit_interval_ms=self.settings.COMMIT_INTERVAL_MS,
-            commit_threshold=self.batch_size
-        )
-        
-        # Set up metrics
-        self.metrics = get_metrics_registry().register_consumer(
-            consumer_id=f"orderbook_{self.group_id}",
-            topic=self.topic,
-            group_id=self.group_id
-        )
-        
-        # Register with health manager
-        self.health_check = get_health_manager().register_consumer(
-            consumer_id=f"orderbook_{self.group_id}",
-            consumer=self._consumer,
-            offset_manager=self.offset_manager,
-            config=HealthCheckConfig(
-                max_lag_messages=10000,  # Lower due to larger message size
-                critical_lag_messages=50000
-            )
-        )
-        
-        logger.info(f"Initialized order book consumer for topic '{self.topic}' with group ID '{self.group_id}'")
+        super().__init__(stream_name, settings, region_name, batch_size, batch_timeout_ms)
+        self.on_orderbook = on_orderbook
     
-    def _deserialize_message(self, msg: Message) -> Dict[str, Any]:
+    def process_message(self, message: Dict[str, Any], raw_record: Dict[str, Any]) -> None:
         """
-        Deserialize a Kafka message containing order book data.
+        Process an orderbook message.
         
         Args:
-            msg: Kafka message
-            
-        Returns:
-            Deserialized order book data
+            message: Deserialized orderbook message
+            raw_record: Original Kinesis record
             
         Raises:
-            DeserializationError: If the message cannot be deserialized
-        """
-        try:
-            # Deserialize using JSON by default
-            data = deserialize_json(msg)
-            
-            # Validate the message structure
-            validate_orderbook_message(data)
-            
-            return data
-        except json.JSONDecodeError as e:
-            raise DeserializationError(f"Invalid JSON in order book message: {e}")
-        except ValidationError as e:
-            raise DeserializationError(f"Invalid order book message: {e}")
-        except Exception as e:
-            raise DeserializationError(f"Failed to deserialize order book message: {e}")
-    
-    def process_message(self, message: Dict[str, Any], raw_message: Message) -> None:
-        """
-        Process a deserialized order book message.
-        
-        Args:
-            message: Deserialized message content
-            raw_message: Original Kafka message
-            
-        Raises:
-            ProcessingError: If the message cannot be processed
+            ProcessingError: If processing fails
         """
         start_time = time.time()
         
         try:
-            # Add message to batch
-            self._batch.append(message)
+            # Validate orderbook message
+            validate_orderbook_message(message)
             
-            # Track offset for manual commit
-            self.offset_manager.track_message(raw_message)
+            # Convert timestamp string to datetime
+            if isinstance(message.get('timestamp'), str):
+                message['timestamp'] = datetime.fromisoformat(message['timestamp'])
             
-            # Process batch if full or timeout reached
-            current_time = time.time() * 1000
-            if (len(self._batch) >= self.batch_size or 
-                current_time - self._batch_start_time >= self.batch_timeout_ms):
-                self._process_batch()
-            
-            # Calculate processing time
-            processing_time_ms = (time.time() - start_time) * 1000
-            
-            # Update metrics
-            self.metrics.record_message_processed(processing_time_ms)
-            self.health_check.record_message_processed(processing_time_ms)
-            
-        except Exception as e:
-            self.metrics.record_message_failed()
-            self.health_check.record_error()
-            raise ProcessingError(f"Failed to process order book message: {e}")
-    
-    def _process_batch(self) -> None:
-        """
-        Process a batch of order book messages.
-        
-        Raises:
-            ProcessingError: If the batch cannot be processed
-        """
-        if not self._batch:
-            return
-            
-        try:
-            # Convert messages to OrderBookSnapshot models
-            orderbook_data = []
-            for message in self._batch:
-                # Create OrderBookSnapshot model
-                orderbook = self._create_orderbook_from_message(message)
-                orderbook_data.append(orderbook)
-            
-            # Save to database
-            self._save_orderbook_batch(orderbook_data)
-            
-            # Commit offsets if needed
-            if self.offset_manager.should_commit():
-                self.offset_manager.commit()
-            
-            # Reset batch
-            batch_size = len(self._batch)
-            self._batch = []
-            self._batch_start_time = time.time() * 1000
-            
-            logger.debug(f"Processed batch of {batch_size} order book messages")
-            
-        except Exception as e:
-            # Clear batch on error to avoid reprocessing bad messages
-            self._batch = []
-            self._batch_start_time = time.time() * 1000
-            
-            raise ProcessingError(f"Failed to process order book batch: {e}")
-    
-    @circuit_breaker("db_operations")
-    def _save_orderbook_batch(self, orderbook_data: List[OrderBookSnapshot]) -> None:
-        """
-        Save a batch of order book data to the database.
-        
-        Args:
-            orderbook_data: List of OrderBookSnapshot models to save
-            
-        Raises:
-            ProcessingError: If saving to the database fails
-        """
-        try:
-            # Use repository to save batch
-            self.repository.save_orderbook_batch(orderbook_data)
-        except Exception as e:
-            raise ProcessingError(f"Failed to save order book batch to database: {e}")
-    
-    def _create_orderbook_from_message(self, message: Dict[str, Any]) -> OrderBookSnapshot:
-        """
-        Create an OrderBookSnapshot model from a message.
-        
-        Args:
-            message: Deserialized message
-            
-        Returns:
-            OrderBookSnapshot model
-        
-        Raises:
-            ProcessingError: If creating the model fails
-        """
-        try:
-            # Get or create instrument
-            instrument = self._get_or_create_instrument(message['symbol'])
-            
-            # Parse timestamp
-            if isinstance(message['timestamp'], (int, float)):
-                # Convert from milliseconds if necessary
-                timestamp = message['timestamp']
-                if timestamp > 1e12:  # Assume milliseconds if very large
-                    timestamp = timestamp / 1000.0
-                timestamp = datetime.fromtimestamp(timestamp)
+            # Call orderbook callback if provided
+            if self.on_orderbook:
+                self.on_orderbook(message)
             else:
-                # Parse ISO format
-                timestamp = datetime.fromisoformat(message['timestamp'].replace('Z', '+00:00'))
+                logger.debug(f"Received orderbook message: {message}")
             
-            # Create OrderBookSnapshot model
-            orderbook = OrderBookSnapshot(
-                instrument_id=instrument.id,
-                timestamp=timestamp,
-                bids=message['bids'],
-                asks=message['asks'],
-                source=message.get('source', 'kafka'),
-                source_timestamp=timestamp
-            )
-            
-            # Add additional fields if present
-            if 'depth' in message:
-                orderbook.depth = message['depth']
-            if 'spread' in message:
-                orderbook.spread = message['spread']
-            if 'weighted_mid_price' in message:
-                orderbook.weighted_mid_price = message['weighted_mid_price']
-            if 'imbalance' in message:
-                orderbook.imbalance = message['imbalance']
-            
-            return orderbook
-            
-        except KeyError as e:
-            raise ProcessingError(f"Missing required field in order book message: {e}")
+            # Record successful processing
+            processing_time_ms = (time.time() - start_time) * 1000
+            self.metrics.record_message_processed(processing_time_ms)
+                
         except Exception as e:
-            raise ProcessingError(f"Failed to create OrderBookSnapshot model: {e}")
-    
-    @circuit_breaker("db_operations")
-    def _get_or_create_instrument(self, symbol: str) -> Instrument:
-        """
-        Get or create an instrument by symbol.
-        
-        Args:
-            symbol: Instrument symbol
-            
-        Returns:
-            Instrument model
-            
-        Raises:
-            ProcessingError: If getting or creating the instrument fails
-        """
-        try:
-            # Use repository to get or create instrument
-            return self.repository.get_or_create_instrument(symbol)
-        except Exception as e:
-            raise ProcessingError(f"Failed to get or create instrument: {e}")
-
-    def on_stop(self) -> None:
-        """
-        Perform cleanup when the consumer stops.
-        
-        This method is called when the consumer is stopping to ensure
-        any pending data is processed.
-        """
-        # Process any remaining messages in the batch
-        if self._batch:
-            try:
-                self._process_batch()
-            except Exception as e:
-                logger.error(f"Error processing final batch: {e}")
-        
-        # Final commit if needed
-        try:
-            if not self.settings.ENABLE_AUTO_COMMIT:
-                self.offset_manager.commit(async_commit=False)
-        except Exception as e:
-            logger.error(f"Error committing final offsets: {e}")
-
-
-# Import for _create_orderbook_from_message
-from datetime import datetime
+            # Record failed processing
+            self.metrics.record_message_failed()
+            logger.error(f"Failed to process orderbook message: {e}")
+            raise ProcessingError(f"Failed to process orderbook message: {e}")
