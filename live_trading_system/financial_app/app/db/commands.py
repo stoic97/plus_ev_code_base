@@ -14,6 +14,7 @@ from datetime import datetime
 from typing import Dict, List, Optional, Any, Union
 import contextlib
 from io import StringIO
+from sqlalchemy import create_engine, text
 
 # Try to import Alembic components - make it optional for test compatibility
 try:
@@ -46,6 +47,8 @@ class MigrationManager:
         """Initialize with specific database target."""
         self.database = database
         self.settings = get_settings()
+        
+        # Update project root to point to financial_app directory
         self.project_root = Path(__file__).parent.parent.parent
         
         # Validate database choice
@@ -71,7 +74,7 @@ class MigrationManager:
         
         config = Config(str(alembic_ini))
         
-        # Set database-specific script location
+        # Set database-specific script location relative to financial_app directory
         if self.database == 'postgres':
             script_location = "app/db/migrations/postgres"
         elif self.database == 'timescale':
@@ -79,7 +82,9 @@ class MigrationManager:
         else:
             script_location = "app/db/migrations"
         
-        config.set_main_option("script_location", script_location)
+        # Convert script location to absolute path relative to alembic.ini location
+        abs_script_location = str(self.project_root / script_location)
+        config.set_main_option("script_location", abs_script_location)
         
         # Set database context for routing
         cmd_opts = argparse.Namespace()
@@ -209,16 +214,88 @@ class MigrationManager:
             logger.error(f"Error getting latest revision: {e}")
             head_revision = "head"
         
+        # Update script location to be relative to financial_app directory
+        script_location = f"app/db/migrations/{self.database}"
+        abs_script_location = str(self.project_root / script_location)
+        
         status_info = {
             "database": self.database,
             "current": current_rev,
             "latest": head_revision,
             "status": "current" if current_rev != "None" else "not_initialized",
             "version_table": f"alembic_version_{self.database}",
-            "script_location": f"app/db/migrations/{self.database}"
+            "script_location": abs_script_location
         }
         
         return status_info
+    
+    def generate(self, message: str, autogenerate: bool = True) -> str:
+        """Generate a new migration script."""
+        if not ALEMBIC_AVAILABLE or not self.config:
+            logger.warning("Alembic not available, cannot generate migration")
+            return ""
+        
+        try:
+            # Use Alembic's revision command
+            command.revision(
+                self.config,
+                message=message,
+                autogenerate=autogenerate
+            )
+            logger.info(f"Successfully generated migration for {self.database} database")
+            return f"Generated migration: {message}"
+        except Exception as e:
+            logger.error(f"Error generating migration for {self.database}: {e}")
+            raise
+
+    def downgrade(self, revision: str = "-1") -> None:
+        """Downgrade with database-specific handling."""
+        if not ALEMBIC_AVAILABLE or not self.config:
+            logger.warning("Alembic not available, cannot downgrade")
+            return
+        
+        try:
+            command.downgrade(self.config, revision)
+            logger.info(f"Successfully downgraded {self.database} database to {revision}")
+        except Exception as e:
+            logger.error(f"Error during {self.database} downgrade: {e}")
+            raise
+
+    def history(self) -> List[Dict[str, Any]]:
+        """Get migration history."""
+        if not ALEMBIC_AVAILABLE or not self.config:
+            return []
+        
+        try:
+            from alembic.script import ScriptDirectory
+            script_dir = ScriptDirectory.from_config(self.config)
+            
+            # Get all revisions
+            revisions = list(script_dir.get_revisions("head"))
+            
+            history_list = []
+            for rev in revisions:
+                history_list.append({
+                    'revision': rev.revision,
+                    'down_revision': rev.down_revision,
+                    'description': rev.doc,
+                    'created': getattr(rev, 'create_date', None)
+                })
+            
+            return history_list
+        except Exception as e:
+            logger.error(f"Error getting migration history for {self.database}: {e}")
+            return []
+
+    def init_schemas(self) -> bool:
+        """Initialize database schemas."""
+        try:
+            # For now, just return True - this would contain schema initialization logic
+            logger.info(f"Initializing schemas for {self.database} database")
+            return True
+        except Exception as e:
+            logger.error(f"Error initializing schemas for {self.database}: {e}")
+            return False
 
 
 def db_upgrade(args):
