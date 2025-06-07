@@ -3,87 +3,145 @@
 Revision ID: ${up_revision}
 Revises: ${down_revision | comma,n}
 Create Date: ${create_date}
-Database: ${database | default("postgres")}
 
 """
 from alembic import op
 import sqlalchemy as sa
 ${imports if imports else ""}
 
-# Detect if we're running against TimescaleDB and need hypertable functionality
-import re
-from sqlalchemy import inspect, text
-from sqlalchemy.engine import reflection
+# Import TimescaleDB helpers for hypertables, compression, etc.
+try:
+    from app.db.migrations.helpers.timescale import (
+        create_hypertable,
+        add_hypertable_compression,
+        create_continuous_aggregate,
+        create_retention_policy,
+        create_time_bucket_index,
+        create_timeseries_table_complete,
+        is_timescaledb_available
+    )
+    from app.db.migrations.helpers.db_init import (
+        ensure_schema_exists,
+        create_extension
+    )
+except ImportError:
+    # Fallback if helpers are not available
+    def create_hypertable(*args, **kwargs):
+        pass
+    def add_hypertable_compression(*args, **kwargs):
+        pass
+    def create_continuous_aggregate(*args, **kwargs):
+        pass
+    def create_retention_policy(*args, **kwargs):
+        pass
+    def create_time_bucket_index(*args, **kwargs):
+        pass
+    def create_timeseries_table_complete(*args, **kwargs):
+        pass
+    def is_timescaledb_available(*args, **kwargs):
+        return False
+    def ensure_schema_exists(*args, **kwargs):
+        pass
+    def create_extension(*args, **kwargs):
+        pass
 
 # revision identifiers, used by Alembic.
 revision = ${repr(up_revision)}
 down_revision = ${repr(down_revision)}
 branch_labels = ${repr(branch_labels)}
 depends_on = ${repr(depends_on)}
-database = '${database | default("postgres")}'
 
 
-def create_hypertable(table_name, time_column_name, chunk_time_interval="1 day", 
-                     if_not_exists=True, migrate_data=False):
-    """Helper function to create a TimescaleDB hypertable."""
-    if_not_exists_clause = "IF NOT EXISTS" if if_not_exists else ""
-    migrate_data_clause = "WITH (migrate_data=True)" if migrate_data else ""
+def upgrade() -> None:
+    """TimescaleDB-specific upgrade operations."""
+    # Example TimescaleDB operations:
+    # 
+    # # Ensure TimescaleDB extension is available
+    # create_extension(op, 'timescaledb')
+    # 
+    # # Create a hypertable (automatically skipped if TimescaleDB not available)
+    # create_hypertable(
+    #     op, 
+    #     table_name='market_data', 
+    #     time_column_name='timestamp',
+    #     schema='market',
+    #     chunk_time_interval='1 day'
+    # )
+    # 
+    # # Add compression policy
+    # add_hypertable_compression(
+    #     op,
+    #     table_name='market_data',
+    #     schema='market',
+    #     compress_after='7 days',
+    #     compress_segmentby=['symbol'],
+    #     compress_orderby=['timestamp DESC']
+    # )
+    # 
+    # # Create continuous aggregate for hourly data
+    # create_continuous_aggregate(
+    #     op,
+    #     view_name='hourly_market_summary',
+    #     hypertable_name='market_data',
+    #     query='''
+    #         SELECT time_bucket('1 hour', timestamp) as hour,
+    #                symbol,
+    #                avg(price) as avg_price,
+    #                max(price) as max_price,
+    #                min(price) as min_price,
+    #                count(*) as tick_count
+    #         FROM market.market_data
+    #         GROUP BY hour, symbol
+    #     ''',
+    #     schema='market',
+    #     refresh_interval='15 minutes'
+    # )
+    # 
+    # # Create retention policy (keep data for 90 days)
+    # create_retention_policy(
+    #     op,
+    #     table_name='market_data',
+    #     schema='market',
+    #     retention_period='90 days'
+    # )
+    # 
+    # # Create optimized time-bucket index
+    # create_time_bucket_index(
+    #     op,
+    #     table_name='market_data',
+    #     time_column='timestamp',
+    #     bucket_interval='1 hour',
+    #     include_columns=['symbol', 'price'],
+    #     schema='market'
+    # )
+    # 
+    # # Complete time-series table setup (convenience function)
+    # create_timeseries_table_complete(
+    #     op,
+    #     table_name='trades',
+    #     time_column='executed_at',
+    #     schema='trading',
+    #     chunk_time_interval='1 hour',
+    #     compress_after='24 hours',
+    #     retention_period='30 days',
+    #     compress_segmentby=['symbol'],
+    #     compress_orderby=['executed_at DESC', 'price DESC']
+    # )
     
-    op.execute(sa.text(f"""
-        SELECT create_hypertable(
-            '{table_name}', 
-            '{time_column_name}',
-            {if_not_exists_clause}
-            chunk_time_interval => INTERVAL '{chunk_time_interval}'
-            {migrate_data_clause}
-        )
-    """))
-
-
-def drop_hypertable(table_name, if_exists=True, cascade=False):
-    """Helper function to drop a TimescaleDB hypertable."""
-    # We don't actually need to do anything special for dropping
-    # The standard DROP TABLE command works for hypertables
-    pass
-
-
-def add_cagg(name, hypertable, view_query, time_column, bucket_interval, 
-             with_data=True, if_not_exists=True):
-    """Helper function to create a TimescaleDB continuous aggregate."""
-    if_not_exists_clause = "IF NOT EXISTS" if if_not_exists else ""
-    with_data_clause = "WITH DATA" if with_data else "WITH NO DATA"
-    
-    op.execute(sa.text(f"""
-        CREATE MATERIALIZED VIEW {if_not_exists_clause} {name}
-        WITH (timescaledb.continuous) AS
-        {view_query}
-        WITH {with_data_clause}
-    """))
-
-
-def drop_cagg(name, if_exists=True, cascade=False):
-    """Helper function to drop a TimescaleDB continuous aggregate."""
-    if_exists_clause = "IF EXISTS" if if_exists else ""
-    cascade_clause = "CASCADE" if cascade else ""
-    
-    op.execute(sa.text(f"""
-        DROP MATERIALIZED VIEW {if_exists_clause} {name} {cascade_clause}
-    """))
-
-
-def is_timescaledb_available():
-    """Check if TimescaleDB extension is available."""
-    try:
-        connection = op.get_bind()
-        result = connection.execute(text("SELECT extname FROM pg_extension WHERE extname = 'timescaledb'"))
-        return result.fetchone() is not None
-    except Exception:
-        return False
-
-
-def upgrade():
     ${upgrades if upgrades else "pass"}
 
 
-def downgrade():
+def downgrade() -> None:
+    """TimescaleDB-specific downgrade operations."""
+    # Example downgrade operations:
+    #
+    # # Remove retention policies
+    # remove_retention_policy(op, 'market_data', schema='market')
+    # 
+    # # Drop continuous aggregates
+    # drop_continuous_aggregate(op, 'hourly_market_summary', schema='market')
+    # 
+    # # Note: Hypertables cannot be easily converted back to regular tables
+    # # You would typically drop and recreate the table if needed
+    
     ${downgrades if downgrades else "pass"}

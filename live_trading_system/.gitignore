@@ -39,3 +39,14 @@ logs/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Auto-generated migration files
+app/db/migrations/postgres/versions/*.py
+app/db/migrations/timescale/versions/*.py
+!app/db/migrations/postgres/versions/.gitkeep
+!app/db/migrations/timescale/versions/.gitkeep
+
+# Temporary files
+*.pyc
+__pycache__/
+.pytest_cache/
