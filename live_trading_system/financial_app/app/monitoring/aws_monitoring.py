@@ -4,7 +4,7 @@ Fixed AWS X-Ray and CloudWatch Integration for FastAPI Trading Application
 This module provides comprehensive monitoring setup for your algo trading API
 using AWS native services for performance tracking with proper error handling.
 
-Save as: app/monitoring/aws_monitoring.py
+Save as: financial_app/app/monitoring/aws_monitoring.py
 """
 
 import os
@@ -79,7 +79,7 @@ class AWSMonitoringSetup:
                 return
                 
             # Create CloudWatch log handler
-            cloudwatch_handler = watchtower.CloudWatchLogsHandler(
+            cloudwatch_handler = watchtower.CloudWatchLogHandler(
                 log_group=f'/aws/fastapi/{self.app_name}',
                 stream_name=f'{self.environment}-{datetime.now().strftime("%Y-%m-%d")}',
                 region_name=self.region
@@ -299,6 +299,18 @@ async def trading_metrics_middleware(request: Request, call_next):
                     dimensions={
                         'Environment': monitoring.environment,
                         'Endpoint': path,
+                        'StatusCode': str(response.status_code)
+                    }
+                )
+            
+            if endpoint_type == 'authentication':
+                monitoring.send_custom_metric(
+                    metric_name='AuthenticationRequests',
+                    value=1,
+                    unit='Count',
+                    dimensions={
+                        'Environment': monitoring.environment,
+                        'Method': request.method,
                         'StatusCode': str(response.status_code)
                     }
                 )
