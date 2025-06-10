@@ -1,0 +1,25 @@
+{
+  "version": 2,
+  "default": {
+    "fixed_target": 1,
+    "rate": 0.1
+  },
+  "rules": [
+    {
+      "description": "Trading endpoints - high sampling",
+      "service_name": "algo-trading-api",
+      "http_method": "*",
+      "url_path": "/api/v1/trading/*",
+      "fixed_target": 2,
+      "rate": 0.5
+    },
+    {
+      "description": "Health checks - minimal sampling",
+      "service_name": "algo-trading-api",
+      "http_method": "GET",
+      "url_path": "/health",
+      "fixed_target": 0,
+      "rate": 0.01
+    }
+  ]
+}
