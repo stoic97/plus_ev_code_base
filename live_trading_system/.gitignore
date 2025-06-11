@@ -42,3 +42,59 @@ Thumbs.db
 
 
 *.pdf
+
+# Database files
+*.sqlite
+*.sqlite3
+*.db
+test_*.db
+
+# Additional Python files
+*.so
+*.egg-info/
+build/
+dist/
+*.egg
+
+# Additional testing
+.tox/
+.nox/
+coverage.xml
+*.cover
+.hypothesis/
+
+# Additional temporary files
+*.tmp
+*.temp
+*.backup
+*.swp
+*.swo
+*~
+
+# Additional OS files
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Desktop.ini
+ehthumbs.db
+
+# Test artifacts and reports
+**/reports/
+**/test_reports/
+**/integration/**/reports/
+
+# Project specific (based on your cleanup)
+migration_diagnosis.json
+**/test_debug.py
+
+# AWS and deployment
+.aws/
+*.pem
+*.key
+
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
