@@ -12,6 +12,8 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../.
 from app.core.database import Base
 from app.core.config import get_settings
 
+from app.models import *
+
 # Read in the configuration
 config = context.config
 settings = get_settings()
@@ -24,39 +26,38 @@ if config.config_file_name:
 target_metadata = Base.metadata
 
 
-def get_current_database():
-    """Determine which database to target based on command line arguments."""
-    try:
-        cmd_opts = context.get_x_argument(as_dictionary=True)
-        database = cmd_opts.get('database', 'postgres')
-        
-        # Validate database choice
-        valid_databases = ['postgres', 'timescale']
-        if database not in valid_databases:
-            raise ValueError(f"Invalid database '{database}'. Must be one of: {valid_databases}")
-        
-        return database
-    except (AttributeError, TypeError):
-        return 'postgres'
+def run_migrations_offline():
+    """Run migrations in 'offline' mode."""
+    url = config.get_main_option("sqlalchemy.url")
+    context.configure(
+        url=url,
+        target_metadata=target_metadata,
+        literal_binds=True,
+        dialect_opts={"paramstyle": "named"},
+    )
+
+    with context.begin_transaction():
+        context.run_migrations()
 
 
-def delegate_to_database_env():
-    """
-    Delegate to the appropriate database-specific env.py file.
-    This is the main router that directs to postgres/ or timescale/ directories.
-    """
-    database = get_current_database()
-    
-    # Import and call the appropriate database-specific env
-    if database == 'postgres':
-        from app.db.migrations.postgres.env import run_postgres_migrations
-        run_postgres_migrations()
-    elif database == 'timescale':
-        from app.db.migrations.timescale.env import run_timescale_migrations
-        run_timescale_migrations()
-    else:
-        raise ValueError(f"No migration handler for database: {database}")
+def run_migrations_online():
+    """Run migrations in 'online' mode."""
+    connectable = engine_from_config(
+        config.get_section(config.config_ini_section),
+        prefix="sqlalchemy.",
+        poolclass=pool.NullPool,
+    )
+
+    with connectable.connect() as connection:
+        context.configure(
+            connection=connection, target_metadata=target_metadata
+        )
+
+        with context.begin_transaction():
+            context.run_migrations()
 
 
-# Route to appropriate database
-delegate_to_database_env()
+if context.is_offline_mode():
+    run_migrations_offline()
+else:
+    run_migrations_online()

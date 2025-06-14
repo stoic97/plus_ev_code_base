@@ -138,6 +138,11 @@ class MigrationManager:
         scripts_dir = "app/db/migrations"
         config.set_main_option("script_location", scripts_dir)
         
+        if self.database == "postgres":
+            config.set_main_option("sqlalchemy.url", str(self.settings.db.POSTGRES_URI))
+        elif self.database == "timescale":
+            config.set_main_option("sqlalchemy.url", str(self.settings.db.TIMESCALE_URI))
+        
         return config
     
     def upgrade(self, revision: str = "head") -> None:
@@ -262,7 +267,7 @@ class MigrationManager:
                     "revision": revision.revision,
                     "down_revision": revision.down_revision,
                     "description": revision.doc,
-                    "created": datetime.fromtimestamp(revision.date).isoformat() if revision.date else None
+                    "created": None
                 })
             
             return history
