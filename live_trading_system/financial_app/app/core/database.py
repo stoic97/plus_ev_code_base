@@ -1320,3 +1320,11 @@ def cache(ttl: int = None, key_prefix: str = None):
        return wrapper
    
    return decorator
+def get_postgres_db() -> PostgresDB:
+    """
+    Alternative name for get_db() function for compatibility.
+    
+    Returns:
+        PostgreSQL database instance
+    """
+    return get_db()

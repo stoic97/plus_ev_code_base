@@ -105,11 +105,18 @@ class AppError(Exception):
         log_method(
             f"{self.detail.error_category.upper()} Error: {self.detail.message}",
             extra={
-                "error_detail": self.detail.dict(),
+                "error_detail": self.detail.model_dump(),
                 "severity": self.detail.severity,
                 "component": self.detail.component
             }
         )
+
+    def log_error(self, logger_obj: Optional[logging.Logger] = None) -> None:
+        """
+        Alias for log() method for backward compatibility.
+        Some code may call log_error() instead of log().
+        """
+        return self.log(logger_obj)
 
     def to_http_exception(self) -> HTTPException:
         """
@@ -521,6 +528,12 @@ def retry_operation(
     return decorator
 
 
+# Convenience function for direct access to ErrorTracker.track_error
+def track_error(error: Union[AppError, Exception], category: Optional[ErrorCategory] = None) -> None:
+    """Convenience function to track errors directly."""
+    return ErrorTracker.track_error(error, category)
+
+
 __all__ = [
     'AppError',
     'DatabaseError',
@@ -532,6 +545,7 @@ __all__ = [
     'ErrorCategory',
     'ErrorSeverity',
     'ErrorTracker',
+    'track_error',
     'convert_exception',
     'format_error_message',
     'create_error_context',

@@ -1167,7 +1167,7 @@ class Strategy(StrategyBaseModel, UserRelationMixin,
                               back_populates="strategies")
     signals = relationship("Signal", back_populates="strategy")
     trades = relationship("Trade", back_populates="strategy")  
-    parent_version = relationship("Strategy", remote_side=[id], 
+    parent_version = relationship("Strategy", remote_side="id", 
                                  backref="child_versions")
     timeframes = relationship("StrategyTimeframe", back_populates="strategy",
                              cascade="all, delete-orphan")
