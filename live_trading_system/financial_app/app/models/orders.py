@@ -219,7 +219,8 @@ class Order(Base):
     user = relationship("User", back_populates="orders")
     position = relationship("Position", back_populates="orders")
     
-    parent_order = relationship("Order", remote_side=[id], backref="child_orders")
+    
+    parent_order = relationship("Order", remote_side="id", backref="child_orders")
     
     order_legs = relationship("OrderLeg", back_populates="parent_order", cascade="all, delete-orphan")
     executions = relationship("Execution", back_populates="order", cascade="all, delete-orphan")

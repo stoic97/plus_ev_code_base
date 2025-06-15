@@ -28,6 +28,7 @@ import enum
 import json
 from typing import Dict, List, Optional, Any, Union, Tuple
 from datetime import datetime, time
+from app.models.backtest import BacktestRun, BacktestComparison
 
 # Import only the specific classes we need - avoid circular references
 from app.core.database import Base
@@ -1110,8 +1111,8 @@ class TradeFeedback(StrategyBaseModel, TimestampMixin):
 
 
 # Core strategy model
-class Strategy(StrategyBaseModel, UserRelationMixin, 
-               AuditMixin, SoftDeleteMixin, VersionedMixin, StatusMixin):
+class Strategy(StrategyBaseModel, TimestampMixin, UserRelationMixin,
+               SoftDeleteMixin, VersionedMixin, StatusMixin):
     """
     Comprehensive trading strategy model incorporating all of Rikk's principles.
     
@@ -1167,7 +1168,8 @@ class Strategy(StrategyBaseModel, UserRelationMixin,
                               back_populates="strategies")
     signals = relationship("Signal", back_populates="strategy")
     trades = relationship("Trade", back_populates="strategy")  
-    parent_version = relationship("Strategy", remote_side="id", 
+    
+    parent_version = relationship("Strategy", remote_side=lambda: Strategy.id,
                                  backref="child_versions")
     timeframes = relationship("StrategyTimeframe", back_populates="strategy",
                              cascade="all, delete-orphan")
@@ -1191,6 +1193,8 @@ class Strategy(StrategyBaseModel, UserRelationMixin,
                                            back_populates="strategy", cascade="all, delete-orphan")
     feedback = relationship("TradeFeedback", back_populates="strategy")
     backtests = relationship("StrategyBacktest", back_populates="strategy")
+    backtest_runs = relationship("BacktestRun", back_populates="strategy", cascade="all, delete-orphan")
+    backtest_comparisons = relationship("BacktestComparison", back_populates="strategy", cascade="all, delete-orphan")
     
     # Indexes for common queries
     __table_args__ = (
@@ -1764,7 +1768,7 @@ class StrategyCategory(StrategyBaseModel, TimestampMixin):
                              back_populates="categories")
 
 
-class StrategyBacktest(StrategyBaseModel, TimestampMixin, UserRelationMixin):
+class StrategyBacktest(StrategyBaseModel, TimestampMixin):
     """
     Strategy backtest results model.
     
@@ -1825,6 +1829,7 @@ class StrategyBacktest(StrategyBaseModel, TimestampMixin, UserRelationMixin):
     
     # Relationship
     strategy = relationship("Strategy", back_populates="backtests")
+    backtest_runs = relationship("BacktestRun", back_populates="strategy_backtest", cascade="all, delete-orphan")
     
     def calculate_metrics(self, trades: List[Dict], equity_curve: List[Dict]) -> None:
         """
@@ -1964,7 +1969,7 @@ class Signal(StrategyBaseModel, TimestampMixin):
         return {}
 
 
-class Trade(StrategyBaseModel, TimestampMixin, UserRelationMixin):
+class Trade(StrategyBaseModel, TimestampMixin):
     """
     Trade execution model.
     

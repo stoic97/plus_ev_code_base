@@ -22,7 +22,12 @@ from datetime import datetime, date, time, timedelta
 from typing import List, Dict, Optional, Union, Any, Type, TypeVar, Generic, cast
 from uuid import uuid4
 import json
-
+# Import User model to make it available for relationships
+try:
+    from app.models.user import User
+except ImportError:
+    # User model not available - relationships will be string-based
+    pass
 # Import the SQLAlchemy Base
 from app.core.database import Base
 
@@ -63,11 +68,13 @@ class UserRelationMixin:
     """
     @declared_attr
     def user_id(cls):
-        return Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+        from sqlalchemy.dialects.postgresql import UUID
+        return Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+        
         
     @declared_attr
     def user(cls):
-        return relationship("User", back_populates=cls.__tablename__)
+        return relationship("User", foreign_keys=[cls.user_id])
 
 class PositiveValueMixin:
     """
@@ -95,8 +102,10 @@ class AuditMixin(TimestampMixin):
         created_at: Timestamp when created (from TimestampMixin)
         updated_at: Timestamp when updated (from TimestampMixin)
     """
-    created_by_id = Column(Integer, ForeignKey("users.id"), index=True)
-    updated_by_id = Column(Integer, ForeignKey("users.id"))
+    from sqlalchemy.dialects.postgresql import UUID
+    created_by_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), index=True)
+    updated_by_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+    
     
     @declared_attr
     def created_by(cls):
@@ -118,7 +127,8 @@ class SoftDeleteMixin:
         deleted_by_id: ID of user who deleted the record
     """
     deleted_at = Column(DateTime(timezone=True))
-    deleted_by_id = Column(Integer, ForeignKey("users.id"))
+    from sqlalchemy.dialects.postgresql import UUID
+    deleted_by_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
     
     @property
     def is_deleted(self):

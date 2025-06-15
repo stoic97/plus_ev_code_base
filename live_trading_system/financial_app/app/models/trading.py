@@ -154,7 +154,8 @@ class Order(Base):
     account = relationship("Account", back_populates="orders")
     executions = relationship("Execution", back_populates="order", cascade="all, delete-orphan")
     order_events = relationship("OrderEvent", back_populates="order", cascade="all, delete-orphan")
-    child_orders = relationship("Order", backref=backref("parent_order", remote_side=[order_id]))
+    
+    child_orders = relationship("Order", backref=backref("parent_order", remote_side="order_id"))
     
     # Indices and constraints
     __table_args__ = (

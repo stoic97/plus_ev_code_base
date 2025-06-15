@@ -32,6 +32,9 @@ except ImportError:
 # Create the v1 API router
 api_router = APIRouter()
 
+
+
+
 # Include auth and health routers
 api_router.include_router(auth.router, prefix="/auth", tags=["Authentication"])
 api_router.include_router(health.router, prefix="/health", tags=["Health"])
@@ -56,7 +59,8 @@ elif FALLBACK_AVAILABLE:
         prefix="",
         tags=["Analytics"]
     )
-
+from app.api.v1.endpoints import backtesting
+api_router.include_router(backtesting.router, prefix="/backtests", tags=["Backtesting"])
 # Future endpoint routers can be added here
 # api_router.include_router(users.router, prefix="/users", tags=["Users"])
 # api_router.include_router(market_data.router, prefix="/market-data", tags=["Market Data"])

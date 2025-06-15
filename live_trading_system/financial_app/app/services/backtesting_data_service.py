@@ -157,8 +157,9 @@ class BacktestingDataService:
             
             # Parse timestamp from "24/12/24 9:00" format to datetime
             parsed_df['timestamp'] = pd.to_datetime(
+            
                 parsed_df['timestamp'], 
-                format='%d/%m/%y %H:%M',
+                format='%Y-%m-%d %H:%M:%S',
                 errors='coerce'
             )
             
